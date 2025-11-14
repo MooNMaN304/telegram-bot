@@ -3,8 +3,9 @@ from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 import logging
 
 from src.application.parser_factory import create_malibu_service
+from src.settings import Settings
 
-bot = telebot.TeleBot('7941707152:AAFpCfHnCUv7psTR6SkLsjqn0ObLWSucyd8')
+bot = telebot.TeleBot(Settings.BOT_SECRET_KEY)
 service = create_malibu_service()
 
 def create_main_keyboard():
