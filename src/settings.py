@@ -7,8 +7,7 @@ class Settings(BaseSettings):
     REQUEST_TIMEOUT: int = 30
     WAIT_PAGE_LOAD: int = 3
 
-    # ключ телеграм бота
-    BOT_SECRET_KEY = '7941707152:AAFpCfHnCUv7psTR6SkLsjqn0ObLWSucyd8'
+
     
     # список Telegram ID админов
     ADMIN_IDS = ['123456789']  
