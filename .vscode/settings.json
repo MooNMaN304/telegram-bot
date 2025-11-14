@@ -1,0 +1,31 @@
+{
+    "python.defaultInterpreterPath": "${workspaceFolder}/venv/Scripts/python.exe",
+    "python.terminal.activateEnvironment": true,
+    "python.venvPath": "${workspaceFolder}/venv",
+    
+    // Явно указываем активацию venv
+    "terminal.integrated.env.windows": {
+        "VIRTUAL_ENV": "${workspaceFolder}/venv",
+        "PATH": "${workspaceFolder}/venv/Scripts;${env:PATH}"
+    },
+    
+    // Настройки терминала
+    "terminal.integrated.defaultProfile.windows": "PowerShell",
+    "terminal.integrated.profiles.windows": {
+        "PowerShell": {
+            "source": "PowerShell",
+            "icon": "terminal-powershell",
+            "args": [
+                "-ExecutionPolicy",
+                "Bypass",
+                "-NoExit",
+                "-Command",
+                "& '${workspaceFolder}/venv/Scripts/Activate.ps1'"
+            ]
+        }
+    },
+    
+    // Отключаем проблемные расширения
+    "ruff.enable": false,
+    "python.linting.enabled": false
+}
