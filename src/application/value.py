@@ -3,7 +3,6 @@
 # REPO
 # Что-то еще
 # src/application/parser_factory.py
-import logging
 from sqlalchemy.orm import Session
 
 from src.db.database import SessionLocal
@@ -27,10 +26,10 @@ from src.parsing_movie.malibu_cinema.session_parser import MalibuSessionParser
 from src.parsing_movie.malibu_cinema.service import MalibuService
 from src.settings import settings
 
-logger = logging.getLogger(__name__)
 
+# сборка репозиториев
 def create_movie_repository(db: Session, movie_model: MovieModel) -> MovieRepository:
-    return MovieRepository(db=db, movie_model=MovieModel)
+    return MovieRepository(db=db, movie_model=movie_model)
 
 def create_cinema_repository(db: Session) -> CinemaRepository:
     return CinemaRepository(db=db, cinema_model=CinemaModel)
@@ -42,37 +41,52 @@ def create_user_repository(db: Session):
     return UserRepository(db=db, user_model=UserModel)
 
 
+# сборка экстракторов
+def create_main_page_extractor() -> MalibuMainPageExtractor:
+    return MalibuMainPageExtractor(selectors=settings.CINEMA_SELECTORS["malibu"])
+
+def create_details_extractor() -> MalibuDetailsExtractor:
+    return MalibuDetailsExtractor(selectors=settings.MOVIE_DETAILS_SELECTORS["malibu"])
+
+def create_session_extractor() -> MalibuSessionExtractor:
+    return MalibuSessionExtractor(selectors=settings.SESSION_SELECTORS["malibu"])
+
+# сборка сервиса
+def create_main_parser() -> MalibuMainPageParser:
+    extractor = create_main_page_extractor()
+    return MalibuMainPageParser(
+        url=settings.MALIBU_URL,
+        css_selector=settings.CINEMA_SELECTORS["malibu"],
+        wait_time=settings.WAIT_PAGE_LOAD,
+        extractor=extractor
+    )
+
+def create_details_parser(main_parser: MalibuMainPageParser) -> MalibuDetailsParser:
+    extractor = create_details_extractor()
+    return MalibuDetailsParser(
+        extractor=extractor,
+        driver=main_parser.driver
+    )
+
+def create_session_parser() -> MalibuSessionParser:
+    extractor = create_session_extractor()
+    return MalibuSessionParser(
+        extractor=extractor
+    )
 
 def create_malibu_service() -> MalibuService:
     """Собирает и возвращает полностью готовый MalibuService"""
     db: Session = SessionLocal()
 
     # Репозитории
-    movie_repo = MovieRepository(db=db, movie_model=MovieModel)
-    cinema_repo = CinemaRepository(db=db, cinema_model=CinemaModel)
-    session_repo = SessionRepository(db=db, session_model=SessionModel)
-
-    # Extractors
-    main_extractor = MalibuMainPageExtractor(selectors=settings.CINEMA_SELECTORS["malibu"])
-    details_extractor = MalibuDetailsExtractor(selectors=settings.MOVIE_DETAILS_SELECTORS["malibu"])
-    session_extractor = MalibuSessionExtractor(selectors=settings.SESSION_SELECTORS["malibu"])
+    movie_repo = create_movie_repository(db=db, movie_model=MovieModel)
+    cinema_repo = create_cinema_repository(db=db)
+    session_repo = create_session_repository(db=db)
 
     # Парсеры
-    main_parser = MalibuMainPageParser(
-        url=settings.MALIBU_URL,
-        css_selector=settings.CINEMA_SELECTORS["malibu"],
-        wait_time=settings.WAIT_PAGE_LOAD,
-        extractor=main_extractor
-    )
-
-    details_parser = MalibuDetailsParser(
-        extractor=details_extractor,
-        driver=main_parser.driver
-    )
-
-    session_parser = MalibuSessionParser(
-        extractor=session_extractor
-    )
+    main_parser = create_main_parser()
+    details_parser = create_details_parser(main_parser=main_parser)
+    session_parser = create_session_parser()
 
     # Сервис
     service = MalibuService(

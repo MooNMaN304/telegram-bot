@@ -1,11 +1,16 @@
 import telebot
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 import logging
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 from src.application.parser_factory import create_malibu_service
-from src.settings import Settings
 
-bot = telebot.TeleBot(Settings.BOT_SECRET_KEY)
+BOT_SECRET_KEY = os.getenv("BOT_SECRET_KEY")
+bot = telebot.TeleBot(BOT_SECRET_KEY)
+
 service = create_malibu_service()
 
 def create_main_keyboard():
@@ -63,8 +68,6 @@ bot.polling()
 # import os
 # import sys
 # import logging
-
-# bot = telebot.TeleBot('7941707152:AAFpCfHnCUv7psTR6SkLsjqn0ObLWSucyd8')
 
 # PARSING_SCRIPT_PATH = 'run_malibu.py'
 # ADMIN_ID = ''
