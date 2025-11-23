@@ -4,8 +4,8 @@ from sqlalchemy import Integer
 from .movie_model import MovieModel
 
 class MovieRepository:
-    def __init__(self, db: Session, movie_model: type[MovieModel]):
-        self.db = db
+    def __init__(self, session: Session, movie_model: type[MovieModel]):
+        self.db = session
         self.movie_model = movie_model
     
     def get_all(self) -> List[MovieModel]:

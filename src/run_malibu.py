@@ -25,6 +25,7 @@ from src.parsing_movie.malibu_cinema.main_page_parser import MalibuMainPageParse
 from src.parsing_movie.malibu_cinema.details_parser import MalibuDetailsParser
 from src.parsing_movie.malibu_cinema.session_parser import MalibuSessionParser
 from src.parsing_movie.malibu_cinema.service import MalibuService
+from src.parsing_movie.malibu_cinema.malibu_settings import malibu_settings
 from src.settings import settings
 
 logging.basicConfig(level=logging.INFO)
@@ -37,19 +38,19 @@ def main():
         db = SessionLocal()
 
         # Репозитории
-        movie_repo = MovieRepository(db=db, movie_model=MovieModel)
+        movie_repo = MovieRepository(session=db, movie_model=MovieModel)
         cinema_repo = CinemaRepository(db=db, cinema_model=CinemaModel)
         session_repo = SessionRepository(db=db, session_model=SessionModel)
 
         # --- Extractors ---
-        main_extractor = MalibuMainPageExtractor(selectors=settings.CINEMA_SELECTORS["malibu"])
-        details_extractor = MalibuDetailsExtractor(selectors=settings.MOVIE_DETAILS_SELECTORS["malibu"])
-        session_extractor = MalibuSessionExtractor(selectors=settings.SESSION_SELECTORS["malibu"])
+        main_extractor = MalibuMainPageExtractor(selectors=malibu_settings.CINEMA_SELECTORS["malibu"])
+        details_extractor = MalibuDetailsExtractor(selectors=malibu_settings.MOVIE_DETAILS_SELECTORS["malibu"])
+        session_extractor = MalibuSessionExtractor(selectors=malibu_settings.SESSION_SELECTORS["malibu"])
 
         # --- Парсеры ---
         main_parser = MalibuMainPageParser(
-            url=settings.MALIBU_URL,
-            css_selector=settings.CINEMA_SELECTORS["malibu"],
+            url=malibu_settings.MALIBU_URL,
+            css_selector=malibu_settings.CINEMA_SELECTORS["malibu"],
             wait_time=settings.WAIT_PAGE_LOAD,
             extractor=main_extractor
         )

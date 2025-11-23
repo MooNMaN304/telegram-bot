@@ -2,9 +2,8 @@ import logging
 
 from datetime import datetime, timedelta
 from selenium.webdriver.common.by import By
-from selenium.common.exceptions import NoSuchElementException
 from src.base.base_parser import BaseParser
-from src.settings import settings
+from src.parsing_movie.malibu_cinema.malibu_settings import malibu_settings
 from src.parsing_movie.malibu_cinema.session_extractor import MalibuSessionExtractor
 from src.parsing_movie.malibu_cinema.schemas import MalibuSessionSchema
 
@@ -15,8 +14,9 @@ class MalibuSessionParser(BaseParser):
     """Парсер расписания (сеансов) фильма в кинотеатре Malibu"""
 
     def __init__(self, extractor: MalibuSessionExtractor):
-        super().__init__()
-        self.selectors = settings.SESSION_SELECTORS["malibu"]
+        # НЕ вызываем super().__init__() - используем драйвер из параметра parse_sessions()
+        self.driver = None  # Инициализируем как None, будет передан в parse_sessions()
+        self.selectors = malibu_settings.SESSION_SELECTORS["malibu"]
         self.extractor = extractor
 
     def form_urls(self, movie_url: str) -> list[str]:

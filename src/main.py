@@ -1,56 +1,77 @@
-import telebot
-from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
-import logging
-import os
-from dotenv import load_dotenv
+from src.application.bot.bot_factory import bot
+from src.application.bot.handlers import register_handlers
 
-load_dotenv()
+from src.services.logger import setup_logging, get_logger
 
-from src.application.parser_factory import create_malibu_service
+# Настройте логгер (один раз в main)
 
-BOT_SECRET_KEY = os.getenv("BOT_SECRET_KEY")
-bot = telebot.TeleBot(BOT_SECRET_KEY)
 
-service = create_malibu_service()
+def run_bot():
+    register_handlers(bot)
+    bot.infinity_polling()
 
-def create_main_keyboard():
-    markup = InlineKeyboardMarkup()
-    markup.add(InlineKeyboardButton("🚀 Запуск парсинга", callback_data="start_parsing"))
-    return markup
+if __name__ == "__main__":
+    setup_logging()
 
-@bot.message_handler(commands=['start'])
-def start_command(message):
-    bot.send_message(
-        message.chat.id,
-        "🤖 Бот для парсинга готов!\n\nНажмите кнопку ниже:",
-        reply_markup=create_main_keyboard()
-    )
+    # Получайте логгер в модулях
+    logger = get_logger(__name__)
+    logger.info("Стандартная библиотека logging")
+    run_bot()
 
-@bot.callback_query_handler(func=lambda call: call.data == "start_parsing")
-def start_parsing(call):
-    chat_id = call.message.chat.id
-    bot.edit_message_text(
-        chat_id=chat_id,
-        message_id=call.message.message_id,
-        text="🔄 Выполняется парсинг... Подождите.",
-        reply_markup=None
-    )
+#-----------------------------------new-------------------------------------------
+# import telebot
+# from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
+# import logging
+# import os
+# from dotenv import load_dotenv
 
-    try:
-        malibu_cinema_id = service.get_malibu_cinema_id()
-        service.malibu_movies_record(malibu_cinema_id)
+# load_dotenv()
 
-        bot.send_message(chat_id, "✅ Парсинг успешно завершён!")
-    except Exception as e:
-        logging.exception("Ошибка при парсинге:")
-        bot.send_message(chat_id, f"❌ Ошибка при парсинге: {e}")
-    finally:
-        service.main_parser.driver.quit()
-        service.db.close()
+# from src.application.parser_factory import create_malibu_service
 
-        bot.send_message(chat_id, "Хотите выполнить парсинг ещё раз?", reply_markup=create_main_keyboard())
+# BOT_SECRET_KEY = os.getenv("BOT_SECRET_KEY")
+# bot = telebot.TeleBot(BOT_SECRET_KEY)
 
-bot.polling()
+# service = create_malibu_service()
+
+# def create_main_keyboard():
+#     markup = InlineKeyboardMarkup()
+#     markup.add(InlineKeyboardButton("🚀 Запуск парсинга", callback_data="start_parsing"))
+#     return markup
+
+# @bot.message_handler(commands=['start'])
+# def start_command(message):
+#     bot.send_message(
+#         message.chat.id,
+#         "🤖 Бот для парсинга готов!\n\nНажмите кнопку ниже:",
+#         reply_markup=create_main_keyboard()
+#     )
+
+# @bot.callback_query_handler(func=lambda call: call.data == "start_parsing")
+# def start_parsing(call):
+#     chat_id = call.message.chat.id
+#     bot.edit_message_text(
+#         chat_id=chat_id,
+#         message_id=call.message.message_id,
+#         text="🔄 Выполняется парсинг... Подождите.",
+#         reply_markup=None
+#     )
+
+#     try:
+#         malibu_cinema_id = service.get_malibu_cinema_id()
+#         service.malibu_movies_record(malibu_cinema_id)
+
+#         bot.send_message(chat_id, "✅ Парсинг успешно завершён!")
+#     except Exception as e:
+#         logging.exception("Ошибка при парсинге:")
+#         bot.send_message(chat_id, f"❌ Ошибка при парсинге: {e}")
+#     finally:
+#         service.main_parser.driver.quit()
+#         service.db.close()
+
+#         bot.send_message(chat_id, "Хотите выполнить парсинг ещё раз?", reply_markup=create_main_keyboard())
+
+# bot.polling()
 
 
 

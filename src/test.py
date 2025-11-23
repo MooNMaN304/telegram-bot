@@ -1,8 +1,17 @@
 
 
-a = {'a':'a', 2:'b', 3:'c'}
+class A:
+    
+    a = 10
+    
+    
+a1 = A()
+a2 = A()
 
-b = ['a', 'b', 'c']
 
-tuple = {1,2,3,4,5,6}
-tuple.add(7)
+a1.__class__.a = 11
+
+
+print(a2.a)
+    
+dir(a1)

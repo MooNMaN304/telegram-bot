@@ -12,10 +12,7 @@ class MalibuMainPageParser(BaseParser):
         self.css_selector = css_selector
         self.wait_time = wait_time
         self.extractor = extractor
-
-        # Если передали драйвер извне — используем его
-        # if driver:
-        #     self.driver = driver
+        
 
     def parse_all_movies(self) -> list[dict]:
         """Возвращает список фильмов с главной страницы"""

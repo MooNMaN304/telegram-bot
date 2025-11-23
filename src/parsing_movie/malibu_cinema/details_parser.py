@@ -1,4 +1,5 @@
 import logging
+import time
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.action_chains import ActionChains
@@ -25,9 +26,13 @@ class MalibuDetailsParser(BaseParser):
         """
         try:
             self.driver.get(movie_url)
-
+            # Ждём загрузки страницы (как в рабочем коде)
+            time.sleep(3)
+            
             # ESC для закрытия рекламы
             ActionChains(self.driver).send_keys(Keys.ESCAPE).perform()
+            # Дополнительная задержка после закрытия рекламы
+            time.sleep(2)
 
             # Ждем загрузки страницы
             WebDriverWait(self.driver, 20).until(

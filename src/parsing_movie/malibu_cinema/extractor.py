@@ -46,20 +46,18 @@ class MalibuDetailsExtractor:
     def _extract_description(self, driver) -> str | None:
         """Извлечение описания — проверяет несколько селекторов поочередно"""
         selectors = self.selectors.get("description", [])
-        if isinstance(selectors, str):
-            selectors = [selectors]  # поддержка старого формата
-
+        description = ""
+        
         for selector in selectors:
             try:
                 desc_el = driver.find_element(By.CSS_SELECTOR, selector)
                 text = desc_el.text.strip()
                 if text:
-                    return text
+                    description = text
             except NoSuchElementException:
                 continue
 
-        print("⚠️ Описание не найдено ни по одному из селекторов")
-        return None
+        return description if description else None
 
     def _extract_poster(self, driver) -> str | None:
         """Извлечение постера"""

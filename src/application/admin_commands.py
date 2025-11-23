@@ -1,7 +1,9 @@
-from src.application.value import create_malibu_service
+def run_parsing(service):
+    try:
+        malibu_id = service.get_malibu_cinema_id()
+        service.malibu_movies_record(malibu_id)
+    finally:
+        service.main_parser.driver.quit()
+        service.db.close()
 
-
-def start_malibu_parsing(chat_id, service: create_malibu_service):
-    bot.send_message(chat_id, "🔄 Выполняется парсинг... Пожалуйста, подождите.")
-    create_malibu_service()
-    bot.send_message(chat_id, "✅ Парсинг завершён успешно!")
+    return "Парсинг завершён!"  

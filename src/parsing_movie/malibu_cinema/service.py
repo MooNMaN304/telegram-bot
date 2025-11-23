@@ -55,39 +55,45 @@ class MalibuService:
             logger.warning("Парсер не вернул фильмов.")
             return
 
-        for film_data in films:
+        logger.info(f"Найдено фильмов для обработки: {len(films)}")
+
+        for idx, film_data in enumerate(films, start=1):
+            logger.info(f"\n{'='*60}")
+            logger.info(f"[{idx}/{len(films)}] Обработка фильма по ссылке: {film_data['url']}")
+            logger.info(f"{'='*60}")
+            
+            # Сначала парсим детали с полной информацией (включая название)
+            logger.info(f"[{idx}/{len(films)}] Шаг 1: Парсинг деталей фильма...")
+            movie_schema = self.details_parser.parse_details(film_data["url"])
+            
+            if not movie_schema or not movie_schema.title:
+                logger.warning(f"[{idx}/{len(films)}] ✗ Не удалось получить название фильма из {film_data['url']}")
+                continue
+            
+            logger.info(f"[{idx}/{len(films)}] ✓ Получено название: {movie_schema.title}")
+            
+            # ТЕПЕРЬ сохраняем фильм в БД с полными данными
             movie = self.movie_repo.get_or_create(
-                name=film_data["title"],
+                name=movie_schema.title,
                 cinema_id=malibu_cinema_id,
                 defaults={
                     "additional_data": {
                         "url": film_data["url"],
                         "id_malibu": film_data["id_malibu"],
-                    }
+                    },
+                    "description": movie_schema.description,
+                    "genre": ", ".join(movie_schema.genres),
+                    "poster": movie_schema.poster_url,
                 },
             )
 
-            logger.info(f"Фильм '{film_data['title']}' обработан, id={movie.id}")
-            self.update_movie_details(movie, film_data["url"])
+            logger.info(f"[{idx}/{len(films)}] ✓ Фильм сохранён в БД: id={movie.id}")
+            
+            # Теперь парсим расписание
+            logger.info(f"[{idx}/{len(films)}] Шаг 2: Парсинг расписания...")
             self.update_movie_sessions(movie, malibu_cinema_id)
-
-    def update_movie_details(self, movie: MovieModel, url: str):
-        """Парсинг деталей фильма и обновление записи"""
-        logger.info(f"Обновление данных фильма '{movie.name}'...")
-
-        movie_schema = self.details_parser.parse_details(url)
-        if not movie_schema:
-            logger.warning(f"Не удалось получить детали фильма '{movie.name}'")
-            return
-
-        update_data = {
-            "description": movie_schema.description,
-            "genre": ", ".join(movie_schema.genres),
-            "poster": movie_schema.poster_url,
-        }
-
-        self.movie_repo.update(movie.id, update_data)
-        logger.info(f"Данные фильма '{movie.name}' обновлены")
+            
+            logger.info(f"[{idx}/{len(films)}] ✓ Фильм полностью обработан\n")
 
     def update_movie_sessions(self, movie: MovieModel, cinema_id: int):
         """Парсинг и сохранение расписания фильма на 5 дней"""
