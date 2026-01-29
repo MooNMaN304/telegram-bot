@@ -1,5 +1,4 @@
-from sqlalchemy.orm import Session
-from src.db.database import SessionLocal
+from src.db.database import get_session
 
 from src.movies.movie_repository import MovieRepository
 from src.movies.movie_model import MovieModel
@@ -21,24 +20,20 @@ from src.user.user_service import UserService
 
 from src.settings import settings
 
-
-# --- База ---
-def get_session() -> Session:
-    return SessionLocal()
-
+session = get_session()
 
 # --- Репозитории ---
-def get_movie_repository(session: Session):
-    return MovieRepository(session=session, movie_model=MovieModel)
+def get_movie_repository():
+    return MovieRepository(session=session, movie_model=MovieModel, session_model=SessionModel)
 
-def get_cinema_repository(db: Session):
-    return CinemaRepository(db=db, cinema_model=CinemaModel)
+def get_cinema_repository():
+    return CinemaRepository(session=session, cinema_model=CinemaModel)
 
-def get_session_repository(db: Session):
-    return SessionRepository(db=db, session_model=SessionModel)
+def get_session_repository():
+    return SessionRepository(session=session, session_model=SessionModel)
 
-def get_user_repository(db: Session):
-    return UserRepository(db=db, user_model=UserModel)
+def get_user_repository():
+    return UserRepository(session=session, user_model=UserModel)
 
 
 # --- Extractors ---
@@ -73,22 +68,23 @@ def get_session_parser():
 
 # --- Сервисы ---
 def get_malibu_service():
-    db = get_session()
-
     main_parser = get_main_parser()
+    details_parser = get_details_parser(main_parser)
+    session_parser = get_session_parser()
 
-    service = MalibuService(
-        db=db,
-        movie_repo=get_movie_repository(db),
-        cinema_repo=get_cinema_repository(db),
-        session_repo=get_session_repository(db),
+    movie_repo = get_movie_repository()
+    cinema_repo = get_cinema_repository()
+    session_repo = get_session_repository()
+
+    return MalibuService(
+        movie_repo=movie_repo,
+        cinema_repo=cinema_repo,
+        session_repo=session_repo,
         main_parser=main_parser,
-        details_parser=get_details_parser(main_parser),
-        session_parser=get_session_parser()
+        details_parser=details_parser,
+        session_parser=session_parser
     )
-    return service
 
-def get_user_service() -> UserService:
-    db = get_session()
-    user_repo = get_user_repository(db)
+def get_user_service():
+    user_repo = get_user_repository()
     return UserService(user_repo=user_repo)

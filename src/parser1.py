@@ -13,6 +13,7 @@ def extract_release_id(url: str) -> int:
     release_id = path.split('/')[-1]
     return int(release_id)
 
+print(extract_release_id.__annotations__)
 path = chromedriver_autoinstaller.install()
 service = Service(path)
 driver = webdriver.Chrome(service=service)
@@ -88,3 +89,6 @@ except Exception as e:
 finally:
     time.sleep(2)
     driver.quit()
+    
+if __name__ == '__name__':
+    print(dir(extract_release_id))

@@ -14,8 +14,7 @@ class MalibuSessionParser(BaseParser):
     """Парсер расписания (сеансов) фильма в кинотеатре Malibu"""
 
     def __init__(self, extractor: MalibuSessionExtractor):
-        # НЕ вызываем super().__init__() - используем драйвер из параметра parse_sessions()
-        self.driver = None  # Инициализируем как None, будет передан в parse_sessions()
+        self.driver = None
         self.selectors = malibu_settings.SESSION_SELECTORS["malibu"]
         self.extractor = extractor
 

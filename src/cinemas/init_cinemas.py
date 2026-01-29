@@ -18,7 +18,7 @@ def init_cinemas(db):
     Проверяет наличие кинотеатров в БД и создает их, если отсутствуют.
     """
     logger.info("Проверка наличия кинотеатров...")
-    repo = CinemaRepository(db=db, cinema_model=CinemaModel)
+    repo = CinemaRepository(session=db, cinema_model=CinemaModel)
 
     for cinema_data in CINEMAS:
         cinema, created = repo.get_or_create(cinema_data)

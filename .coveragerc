@@ -1,0 +1,23 @@
+[run]
+source = 
+    src/
+    your_main_package/
+    
+omit = 
+    */tests/*
+    */venv/*
+    */__pycache__/*
+    */migrations/*
+    */alembic/*
+
+[report]
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    raise AssertionError
+    raise NotImplementedError
+    if __name__ == .__main__.:
+    if TYPE_CHECKING:
+    @overload
+    
+fail_under = 80  # минимальное покрытие 80%

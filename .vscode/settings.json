@@ -27,5 +27,34 @@
     
     // Отключаем проблемные расширения
     "ruff.enable": false,
-    "python.linting.enabled": false
+    "python.linting.enabled": false,
+    
+    // ВАЖНО: Настройки pytest для VS Code
+    "python.testing.pytestEnabled": true,
+    "python.testing.unittestEnabled": false,
+    "python.testing.autoTestDiscoverOnSaveEnabled": true,
+    "python.testing.autoTestDiscoverOnSaveEnabled": true,
+    "python.testing.cwd": "${workspaceFolder}",
+    
+    // Аргументы pytest
+    "python.testing.pytestArgs": [
+        "tests",
+        "-v",  // verbose режим
+        "--tb=short",  // короткий traceback
+        "--disable-warnings",  // отключить warnings
+        "-o", "python_files=test_*.py",  // шаблон файлов тестов
+        "-o", "python_classes=Test*",  // шаблон классов
+        "-o", "python_functions=test_*"  // шаблон функций
+    ],
+    
+    // Дополнительно для удобства
+    "editor.formatOnSave": true,
+    "files.autoSave": "afterDelay",
+    "files.exclude": {
+        "**/__pycache__": true,
+        "**/.pytest_cache": true,
+        "**/.coverage": true,
+        "**/htmlcov": true,
+        "**/.mypy_cache": true
+    }
 }

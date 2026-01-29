@@ -4,8 +4,8 @@ from src.user.user_model import UserModel
 
 
 class UserRepository:
-    def __init__(self, db: Session, user_model=UserModel):
-        self.db = db
+    def __init__(self, session: Session, user_model=UserModel):
+        self.db = session
         self.user_model = user_model
 
     def create(self, user_data: dict) -> UserModel:

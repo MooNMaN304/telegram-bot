@@ -13,13 +13,17 @@ engine = create_engine(DATABASE_URL, echo=True, future=True)
 # Создаём локальную фабрику сессий
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-def get_db():
-    """
-    Генератор сессии SQLAlchemy.
-    Используется для получения сессии БД через 'next(get_db())' или в FastAPI dependency.
-    """
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+# def get_db():
+#     """
+#     Генератор сессии SQLAlchemy.
+#     Используется для получения сессии БД через 'next(get_db())' или в FastAPI dependency.
+#     """
+#     db = SessionLocal()
+#     try:
+#         yield db
+#     finally:
+#         db.close()
+
+
+def get_session():
+    return SessionLocal()

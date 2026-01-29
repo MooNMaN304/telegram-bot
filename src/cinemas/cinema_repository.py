@@ -3,8 +3,8 @@ from typing import List, Optional, Tuple
 from .cinema_model import CinemaModel
 
 class CinemaRepository:
-    def __init__(self, db: Session, cinema_model: type[CinemaModel]):
-        self.db = db
+    def __init__(self, session: Session, cinema_model: type[CinemaModel]):
+        self.db = session
         self.cinema_model = cinema_model
     
     def get_all(self) -> List[CinemaModel]:

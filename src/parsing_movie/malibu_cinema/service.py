@@ -1,10 +1,8 @@
 import logging
-from sqlalchemy.orm import Session
 
 from src.cinemas.cinema_repository import CinemaRepository
 from src.cinemas.init_cinemas import init_cinemas
 from src.movies.movie_repository import MovieRepository
-from src.movies.movie_model import MovieModel
 from src.sessions.session_repository import SessionRepository
 
 from src.parsing_movie.malibu_cinema.main_page_parser import MalibuMainPageParser
@@ -17,7 +15,6 @@ logger = logging.getLogger(__name__)
 class MalibuService:
     def __init__(
         self,
-        db: Session,
         movie_repo: MovieRepository,
         cinema_repo: CinemaRepository,
         session_repo: SessionRepository,
@@ -25,7 +22,6 @@ class MalibuService:
         details_parser: MalibuDetailsParser,
         session_parser: MalibuSessionParser,
     ):
-        self.db = db
         self.movie_repo = movie_repo
         self.cinema_repo = cinema_repo
         self.session_repo = session_repo
@@ -39,7 +35,8 @@ class MalibuService:
         if cinema:
             return cinema.id
 
-        init_cinemas(self.db)
+        # Если кинотеатр ещё не инициализирован — инициализируем
+        init_cinemas(self.cinema_repo.db)
         cinema = self.cinema_repo.get_by_name("Малибу")
         if cinema:
             return cinema.id
@@ -62,7 +59,7 @@ class MalibuService:
             logger.info(f"[{idx}/{len(films)}] Обработка фильма по ссылке: {film_data['url']}")
             logger.info(f"{'='*60}")
             
-            # Сначала парсим детали с полной информацией (включая название)
+            # Парсим детали фильма
             logger.info(f"[{idx}/{len(films)}] Шаг 1: Парсинг деталей фильма...")
             movie_schema = self.details_parser.parse_details(film_data["url"])
             
@@ -72,7 +69,7 @@ class MalibuService:
             
             logger.info(f"[{idx}/{len(films)}] ✓ Получено название: {movie_schema.title}")
             
-            # ТЕПЕРЬ сохраняем фильм в БД с полными данными
+            # Сохраняем фильм через репозиторий
             movie = self.movie_repo.get_or_create(
                 name=movie_schema.title,
                 cinema_id=malibu_cinema_id,
@@ -89,13 +86,13 @@ class MalibuService:
 
             logger.info(f"[{idx}/{len(films)}] ✓ Фильм сохранён в БД: id={movie.id}")
             
-            # Теперь парсим расписание
+            # Парсим расписание
             logger.info(f"[{idx}/{len(films)}] Шаг 2: Парсинг расписания...")
             self.update_movie_sessions(movie, malibu_cinema_id)
             
             logger.info(f"[{idx}/{len(films)}] ✓ Фильм полностью обработан\n")
 
-    def update_movie_sessions(self, movie: MovieModel, cinema_id: int):
+    def update_movie_sessions(self, movie, cinema_id: int):
         """Парсинг и сохранение расписания фильма на 5 дней"""
         logger.info(f"Парсинг расписания фильма '{movie.name}'...")
 
@@ -125,5 +122,3 @@ class MalibuService:
                 )
 
         logger.info(f"Сеансы фильма '{movie.name}' обновлены")
-
-# найти на гите template шаблон для использования

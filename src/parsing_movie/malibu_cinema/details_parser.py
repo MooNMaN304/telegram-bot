@@ -83,3 +83,67 @@ class MalibuDetailsParser(BaseParser):
             return parts[-1] if parts else ""
         except Exception:
             return ""
+        
+# """
+# OpenAPI → полноценный Python API-клиент
+
+# 👉 если нужно ходить в API как в библиотеку
+
+# Инструмент
+
+# openapi-generator
+
+# Установка
+# brew install openapi-generator
+# # или
+# npm install @openapitools/openapi-generator-cli -g
+
+# Генерация клиента
+# openapi-generator-cli generate \
+#   -i openapi.yaml \
+#   -g python \
+#   -o client
+
+# Результат
+# from client.api.user_api import UserApi
+
+# api = UserApi()
+# user = api.get_user_by_id(1)
+
+
+# ✔ готовые HTTP-вызовы
+
+
+# openapi-generator-cli \
+#   --input https://kinopoiskapiunofficial.tech/documentation/api/openapi.json \
+#   --output movie_models.py
+
+# openapi-generator-cli generate 
+#   -i https://kinopoiskapiunofficial.tech/documentation/api/openapi.json
+#   -g python \
+#   -o client
+
+# python -m openapi-generator-cli \
+#   --input https://kinopoiskapiunofficial.tech/documentation/api/openapi.json \
+#   --output models.py 
+  
+  
+# cd out
+# pip install -e .
+# """
+
+# import openapi_client
+# from openapi_client.api import films_api
+# from openapi_client.configuration import Configuration
+
+# # Настройка
+# config = Configuration()
+# config.api_key['X-API-KEY'] = 'ваш-api-ключ'
+
+# # Использование
+# with openapi_client.ApiClient(config) as api_client:
+#     api = films_api.FilmsApi(api_client)
+#     film = api.api_v22_films_film_id_get(film_id=301)
+#     print(film)
+
+

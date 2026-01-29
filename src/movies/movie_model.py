@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Integer, ForeignKey, UniqueConstraint, JSON
+from sqlalchemy import Column, String, Integer, ForeignKey, UniqueConstraint, JSON, BigInteger
 from sqlalchemy.orm import relationship
 from src.base.base_model import Base
 
@@ -15,6 +15,8 @@ class MovieModel(Base):
     poster = Column(String(255))
     additional_data = Column(JSON)     # JSON с доп. данными
     cinema_id = Column(Integer, ForeignKey('cinemas.id'), nullable=False)
+    kinopoisk_id = Column(BigInteger, unique=True, nullable=True)
+    related_movies = Column(JSON, default=dict)  # Новое поле: словарь {cinema_id: movie_id}
     
     # Отношения
     cinema = relationship("CinemaModel", back_populates="movies")
@@ -26,4 +28,5 @@ class MovieModel(Base):
     def __str__(self):
         sessions_count = len(self.sessions) if self.sessions else 0
         cinema_name = self.cinema.name if self.cinema else "Неизвестный кинотеатр"
-        return f"Фильм '{self.name}' в {cinema_name} (сеансов: {sessions_count})"
+        related_count = len(self.related_movies) if self.related_movies else 0
+        return f"Фильм '{self.name}' в {cinema_name} (сеансов: {sessions_count}, связанных: {related_count})"

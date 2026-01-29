@@ -6,8 +6,8 @@ from .session_model import SessionModel
 class SessionRepository:
     """Репозиторий для работы с таблицей сеансов"""
 
-    def __init__(self, db: Session, session_model: type[SessionModel]):
-        self.db = db
+    def __init__(self, session: Session, session_model: type[SessionModel]):
+        self.db = session
         self.session_model = session_model
 
     def get_all(self) -> List[SessionModel]:

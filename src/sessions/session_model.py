@@ -10,7 +10,7 @@ class SessionModel(Base):
     )
     
     id = Column(Integer, primary_key=True, index=True)
-    session_id = Column(String, nullable=False)  # ID сеанса в кинотеатре
+    session_id = Column(String, nullable=False)  # ID сеанса в кинотеатре uuid
     date = Column(DateTime, default=datetime.utcnow)
     movie_id = Column(Integer, ForeignKey('movies.id'))
     cinema_id = Column(Integer, ForeignKey('cinemas.id'))

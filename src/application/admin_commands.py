@@ -4,6 +4,5 @@ def run_parsing(service):
         service.malibu_movies_record(malibu_id)
     finally:
         service.main_parser.driver.quit()
-        service.db.close()
-
-    return "Парсинг завершён!"  
+        service.movie_repo.db.close()  
+    return "Парсинг завершён!"
