@@ -8,13 +8,15 @@ from src.sessions.session_repository import SessionRepository
 from src.sessions.session_model import SessionModel
 from src.user.user_model import UserModel
 from src.user.user_repository import UserRepository
+from src.utils.kino_api.client import KinoAPIClient
 
-from src.parsing_movie.malibu_cinema.extractor import MalibuMainPageExtractor, MalibuDetailsExtractor
+from src.utils.movie_detail_parser import MovieDetailParser
+
+from src.parsing_movie.malibu_cinema.extractor import MalibuMainPageExtractor
 from src.parsing_movie.malibu_cinema.session_extractor import MalibuSessionExtractor
 from src.parsing_movie.malibu_cinema.main_page_parser import MalibuMainPageParser
-from src.parsing_movie.malibu_cinema.details_parser import MalibuDetailsParser
 from src.parsing_movie.malibu_cinema.session_parser import MalibuSessionParser
-from src.parsing_movie.malibu_cinema.service import MalibuService
+from src.parsing_movie.malibu_cinema.controller import MalibuController
 from src.parsing_movie.malibu_cinema.malibu_settings import malibu_settings
 from src.user.user_service import UserService
 
@@ -24,7 +26,11 @@ session = get_session()
 
 # --- Репозитории ---
 def get_movie_repository():
-    return MovieRepository(session=session, movie_model=MovieModel, session_model=SessionModel)
+    return MovieRepository(
+        session=session,
+        movie_model=MovieModel,
+        session_model=SessionModel
+    )
 
 def get_cinema_repository():
     return CinemaRepository(session=session, cinema_model=CinemaModel)
@@ -38,13 +44,17 @@ def get_user_repository():
 
 # --- Extractors ---
 def get_main_extractor():
-    return MalibuMainPageExtractor(selectors=malibu_settings.CINEMA_SELECTORS["malibu"])
+    return MalibuMainPageExtractor(
+        selectors=malibu_settings.CINEMA_SELECTORS["malibu"]
+    )
 
-def get_details_extractor():
-    return MalibuDetailsExtractor(selectors=malibu_settings.MOVIE_DETAILS_SELECTORS["malibu"])
+# def get_details_extractor():
+#     return MalibuDetailsExtractor(selectors=malibu_settings.MOVIE_DETAILS_SELECTORS["malibu"])
 
 def get_session_extractor():
-    return MalibuSessionExtractor(selectors=malibu_settings.SESSION_SELECTORS["malibu"])
+    return MalibuSessionExtractor(
+        selectors=malibu_settings.SESSION_SELECTORS["malibu"]
+    )
 
 
 # --- Parsers ---
@@ -56,33 +66,26 @@ def get_main_parser():
         extractor=get_main_extractor()
     )
 
-def get_details_parser(main_parser):
-    return MalibuDetailsParser(
-        extractor=get_details_extractor(),
-        driver=main_parser.driver
-    )
+def get_movie_detail_parser():
+    api_client = KinoAPIClient()
+    return MovieDetailParser(api_client=api_client)
 
 def get_session_parser():
-    return MalibuSessionParser(extractor=get_session_extractor())
+    return MalibuSessionParser(
+        extractor=get_session_extractor()
+    )
 
 
 # --- Сервисы ---
-def get_malibu_service():
-    main_parser = get_main_parser()
-    details_parser = get_details_parser(main_parser)
-    session_parser = get_session_parser()
 
-    movie_repo = get_movie_repository()
-    cinema_repo = get_cinema_repository()
-    session_repo = get_session_repository()
-
-    return MalibuService(
-        movie_repo=movie_repo,
-        cinema_repo=cinema_repo,
-        session_repo=session_repo,
-        main_parser=main_parser,
-        details_parser=details_parser,
-        session_parser=session_parser
+def get_malibu_controller():
+    return MalibuController(
+        movie_repo=get_movie_repository(),
+        cinema_repo=get_cinema_repository(),
+        session_repo=get_session_repository(),
+        main_parser=get_main_parser(),
+        movie_detail_parser=get_movie_detail_parser(),
+        session_parser=get_session_parser(),
     )
 
 def get_user_service():

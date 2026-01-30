@@ -4,14 +4,18 @@ from datetime import datetime
 from datetime import time as Time
 
 
-class MalibuMovieSchema(BaseModel):
-    title: str
-    url: Optional[str] = None
-    poster_url: Optional[str] = None
-    description: Optional[str] = None
-    genres: list[str] = []        # список жанров
-    id_malibu: Optional[str] = None
-    kinopoisk_id: Optional[int] = None
+from pydantic import BaseModel
+from typing import Optional, Dict, List
+
+# class MalibuMovieSchema(BaseModel):
+#     title: str
+#     url: Optional[str] = None
+#     poster_url: Optional[str] = None
+#     description: Optional[str] = None
+#     genres: list[str] = []        # список жанров
+#     id_malibu: Optional[str] = None
+#     kinopoisk_id: Optional[int] = None
+#     related_movies: Dict[int, str] = {}  # {cinema_id: id_malibu}
 
 
 class MalibuSessionSchema(BaseModel):

@@ -8,7 +8,7 @@ from datetime import date
 from src.settings import settings
 from src.application.bot.keyboards import admin_keyboard, user_keyboard, film_for_today, sessions_by_film
 from src.application.admin_commands import run_parsing
-from src.application.value import get_malibu_service
+from src.application.value import get_malibu_controller
 from src.application.value import get_user_service, get_movie_repository
 
 
@@ -53,8 +53,8 @@ def register_handlers(bot: TeleBot):
         bot.send_message(chat_id, "🔄 Выполняется парсинг...")
 
         try:
-            service = get_malibu_service()
-            msg = run_parsing(service)
+            controller = get_malibu_controller()
+            msg = run_parsing(controller)
             bot.send_message(chat_id, f"✅ {msg}")
         except Exception as e:
             logging.exception("Ошибка при выполнении парсинга")
