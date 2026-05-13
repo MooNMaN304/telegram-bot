@@ -1,54 +1,65 @@
 import logging
-import time
 from selenium.webdriver.common.by import By
-from selenium.webdriver.common.keys import Keys
 from src.base.base_parser import BaseParser
-from src.parsing_movie.malibu_cinema.extractor import MalibuMainPageExtractor
+from src.parsing_movie.malibu_cinema.malibu_settings import malibu_settings
+from src.parsing_movie.malibu_cinema.html_utils import extract_release_cards
 
 logger = logging.getLogger(__name__)
 
 
 class MalibuMainPageParser(BaseParser):
-    """Парсинг списка фильмов Malibu с главной страницы"""
 
-    def __init__(self, url: str, css_selector: str, extractor: MalibuMainPageExtractor, wait_time: int | None = None):
-        super().__init__(wait_time=wait_time)
-        self.url = url
-        self.css_selector = css_selector
-        self.extractor = extractor
+    def __init__(self, driver=None, wait_time: int | None = None):
+        super().__init__(driver=driver, wait_time=wait_time)
+        self.settings = malibu_settings
 
     def parse_all_movies(self) -> list[dict]:
-        """
-        Возвращает список фильмов с главной страницы.
-        Использует методы BaseParser для навигации и ожидания.
-        """
         if not self.driver:
             logger.error("Драйвер не инициализирован")
             return []
 
         try:
-            # Переходим на страницу
-            self.navigate(self.url)
+            self.navigate(self.settings.MALIBU_URL)
+            self.sleep(1)
+            self.press_escape()
 
-            # Ждём 1 секунду, чтобы подгрузился JS
-            time.sleep(1)
+            # ждём контейнер (у тебя уже XPath)
+            container_xpath = self.settings.MAIN_PAGE_SELECTORS["movies_container_xpath"]
 
-            # Нажимаем Escape на случай модальных окон
-            self.driver.find_element(By.TAG_NAME, "body").send_keys(Keys.ESCAPE)
-
-            # Ждём появления элементов с фильмами
-            if not self.wait_for_element(By.CSS_SELECTOR, self.css_selector):
-                logger.warning("Элементы фильмов не найдены на странице")
+            if not self.wait_for_element(By.XPATH, container_xpath):
+                logger.warning("Контейнер фильмов не найден")
                 return []
 
-            # Получаем все элементы и парсим через extractor
-            elements = self.driver.find_elements(By.CSS_SELECTOR, self.css_selector)
-            if not elements:
-                logger.warning("На странице нет элементов фильмов")
+            page_html = self.driver.page_source
+
+            # 🧠 debug кодировка (ТОЛЬКО ДЛЯ ДИАГНОСТИКИ)
+            logger.debug("HTML length: %d", len(page_html))
+            logger.debug("HTML preview: %s", page_html[:300])
+
+            #release_ids = extract_release_links(page_html)
+            movies = extract_release_cards(page_html)
+
+
+            if not movies:
+                logger.warning("Нет релизов на странице")
                 return []
 
-            return [self.extractor.parse_movie_card(el) for el in elements]
+            logger.info("Найдено релизов: %d", len(movies))
+
+            # ✔️ ВАЖНО: добавляем url сразу (это потом спасёт тебя)
+            # base_url уже добавлен в extract_release_cards
+
+            return movies
+
+            # return [
+            #     {
+            #         "release_id": rid,
+            #         "url": f"{base_url}{rid}",
+            #     }
+            #     for rid in release_ids
+            # ]
+
 
         except Exception as e:
-            logger.error(f"Ошибка при парсинге главной страницы: {e}")
+            logger.exception("Ошибка при парсинге Malibu main page")
             return []

@@ -1,8 +1,9 @@
-def run_parsing(service):
-    try:
-        service.malibu_movies_record()
-    finally:
-        service.main_parser.driver.quit()
-        service.movie_repo.db.close()
+from src.parsing_movie.celery import run_all_parsers_async
 
-    return "Парсинг завершён!"
+def run_parsing():
+    try:
+        ids = run_all_parsers_async()
+        return ids
+    except Exception as e:
+        return f"Ошибка при запуске парсинга: {str(e)}"
+

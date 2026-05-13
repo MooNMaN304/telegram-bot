@@ -4,10 +4,11 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.engine import Engine
 from src.base.base_model import Base
 
-from src.cinemas.cinema_model import CinemaModel
-from src.movies.movie_model import MovieModel
-from src.sessions.session_model import SessionModel
-from src.user.user_model import UserModel
+from src.db.cinemas.cinema_model import CinemaModel
+from src.db.movies.movie_model import MovieModel
+from src.db.sessions.session_model import SessionModel
+from src.db.user.user_model import UserModel
+from src.db.cinema_movie.cinema_movie_model import CinemaMovieModel
 
 import pytest
 from sqlalchemy import MetaData
@@ -125,14 +126,19 @@ def generate_movies(test_session, generate_cinemas, request) -> list[MovieModel]
             description=fake.text(max_nb_chars=200),
             poster=fake.image_url(),
             additional_data={"rating": fake.random_int(min=1, max=10)},
-            cinema_id=cinema.id,
             related_movies={}
         )
 
         test_session.add(movie)
+        test_session.commit()
+        
+        # Создаём связь через CinemaMovieModel
+        relation = CinemaMovieModel(movie_id=movie.id, cinema_id=cinema.id)
+        test_session.add(relation)
+        test_session.commit()
+        
         movies.append(movie)
 
-        test_session.commit()
     return movies
 
 
@@ -159,13 +165,17 @@ def create_specific_movie(
         ),
         poster="https://example.com/poster.jpg",
         additional_data={"rating": 9},
-        cinema_id=cinema.id,
         related_movies={}
     )
 
     test_session.add(movie)
     test_session.commit()
     test_session.refresh(movie)
+
+    # Создаём связь с кинотеатром через CinemaMovieModel
+    relation = CinemaMovieModel(movie_id=movie.id, cinema_id=cinema.id)
+    test_session.add(relation)
+    test_session.commit()
 
     return movie
 
@@ -200,7 +210,7 @@ def create_specific_movie_sessions(
     return sessions
 
 
-# Фикстура для генерации сеансов для заданного фильма и кинотеатра
+# Генерация сеансов для заданного фильма и кинотеатра
 @pytest.fixture
 def generate_sessions(test_session, generate_movies, request) -> list[SessionModel]:
     fake = Faker()
@@ -213,19 +223,28 @@ def generate_sessions(test_session, generate_movies, request) -> list[SessionMod
 
     for _ in range(value):
         movie = fake.random.choice(generate_movies)
+        
+        # Получаем первый кинотеатр из связей этого фильма
+        cinema_movie = (
+            test_session.query(CinemaMovieModel)
+            .filter(CinemaMovieModel.movie_id == movie.id)
+            .first()
+        )
+        
+        if not cinema_movie:
+            continue
 
         session = SessionModel(
             session_id=fake.uuid4(),
             date=fake.date_time_between(start_date="-7d", end_date="+7d"),
             movie_id=movie.id,
-            cinema_id=movie.cinema_id,
+            cinema_id=cinema_movie.cinema_id,
         )
 
         test_session.add(session)
         sessions.append(session)
 
         test_session.commit()
-
 
     return sessions
 

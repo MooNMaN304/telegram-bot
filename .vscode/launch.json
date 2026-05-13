@@ -11,6 +11,30 @@
             "env": {
                 "PYTHONPATH": "${workspaceFolder}"
             }
+        },
+        {
+            "name": "Python: test_kinomax_flow",
+            "type": "python",
+            "request": "launch",
+            "module": "src.parsing_movie.kinomax_cinema.test_kinomax_flow",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}"
+            }
+        },
+        {
+            "name": "Python: test parsers",
+            "type": "python",
+            "request": "launch",
+            "module": "src.parsing_movie.celery",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}"
+            }
         }
     ]
 }

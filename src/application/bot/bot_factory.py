@@ -18,10 +18,11 @@ telebot.logger.setLevel(logging.DEBUG)
 # telebot.logger.addHandler()
 console_handler = logging.StreamHandler()
 console_handler.setLevel(logging.DEBUG)
-console_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+console_handler.setFormatter(
+    logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+)
 
 # Wrap it with Unicode decoder
 unicode_handler = UnicodeDecodeHandler(console_handler)
 unicode_handler.setLevel(logging.DEBUG)
 telebot.logger.addHandler(unicode_handler)
-

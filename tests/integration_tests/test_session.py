@@ -1,6 +1,6 @@
 import pytest
 
-from src.sessions.session_model import SessionModel
+from src.db.sessions.session_model import SessionModel
 
 
 # Тест генерации сеансов фильма

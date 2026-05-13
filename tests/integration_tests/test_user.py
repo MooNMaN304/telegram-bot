@@ -1,4 +1,4 @@
-from src.user.user_model import UserModel
+from src.db.user.user_model import UserModel
 from unittest.mock import MagicMock
 import pytest
 

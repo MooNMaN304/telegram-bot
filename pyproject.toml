@@ -1,0 +1,25 @@
+# Настройка линтера "ruff" и контроль над его функциями
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+fix = false   # ❗ по умолчанию ничего не чинит сам
+
+[tool.ruff.format]
+quote-style = "double"
+skip-magic-trailing-comma = false
+
+[tool.ruff.lint]
+# ВАЖНО:
+# ❌ НЕ включаем F401 (unused imports)
+# ❌ НЕ включаем I (isort)
+select = [
+    "E",   # ошибки форматирования
+    "W",   # warnings
+    "B",   # bugbear
+]
+ignore = [
+    "E501",  # длину строки отдаём форматтеру
+]
+# Continue on error - don't stop on first linter error
+ignore-init-module-imports = true
+

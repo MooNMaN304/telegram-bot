@@ -1,7 +1,7 @@
 import pytest
 
-from src.cinemas.cinema_model import CinemaModel
-from src.cinemas.cinema_repository import CinemaRepository
+from src.db.cinemas.cinema_model import CinemaModel
+from src.db.cinemas.cinema_repository import CinemaRepository
 
 
 # Тест генерации кинотеатровa

@@ -1,0 +1,44 @@
+erDiagram
+    CINEMAS ||--o{ CINEMA_MOVIE : "has"
+    MOVIES ||--o{ CINEMA_MOVIE : "has"
+    CINEMAS ||--o{ SESSIONS : "has"
+    MOVIES ||--o{ SESSIONS : "shows"
+
+    USERS {
+        int id PK
+        string telegram_id UK
+        string username
+        string first_name
+        string last_name
+    }
+
+    CINEMAS {
+        int id PK
+        string name UK
+        string address
+    }
+
+    MOVIES {
+        int id PK
+        string name
+        string genre
+        string description
+        string poster
+        json additional_data
+        bigint kinopoisk_id UK
+        json related_movies
+    }
+
+    CINEMA_MOVIE {
+        int cinema_id FK
+        int movie_id FK
+    }
+
+    SESSIONS {
+        int id PK
+        string session_id
+        datetime date
+        int movie_id FK
+        int cinema_id FK
+        datetime updated_at
+    }

@@ -1,11 +1,12 @@
 import logging
-
 from datetime import datetime, timedelta
+
 from selenium.webdriver.common.by import By
+
 from src.base.base_parser import BaseParser
 from src.parsing_movie.malibu_cinema.malibu_settings import malibu_settings
 from src.parsing_movie.malibu_cinema.session_extractor import MalibuSessionExtractor
-from src.parsing_movie.malibu_cinema.schemas import MalibuSessionSchema
+from src.db.sessions.session_schema import SessionSchema
 
 logger = logging.getLogger(__name__)
 
@@ -13,76 +14,174 @@ logger = logging.getLogger(__name__)
 class MalibuSessionParser(BaseParser):
     """Парсер расписания (сеансов) фильма в кинотеатре Malibu"""
 
-    def __init__(self, extractor: MalibuSessionExtractor):
-        self.driver = None
+    def __init__(
+        self,
+        driver=None,
+        wait_time: int | None = None,
+    ):
+        super().__init__(driver=driver, wait_time=wait_time)
+        self.extractor = MalibuSessionExtractor(malibu_settings.SESSION_SELECTORS["malibu"])
         self.selectors = malibu_settings.SESSION_SELECTORS["malibu"]
-        self.extractor = extractor
+        self.parsing_options = malibu_settings.SESSION_PARSING_OPTIONS
 
-    def form_urls(self, movie_url: str) -> list[str]:
-        """Генерирует 5 ссылок (сегодня + 4 дня)"""
+    def form_urls(self, movie_url: str, days: int = 5) -> list[str]:
+        """Генерирует ссылки на расписание (сегодня + N дней)"""
         base_url = movie_url.split("?")[0]
         today = datetime.now().date()
+
         return [
             f"{base_url}?date={(today + timedelta(days=i)).strftime('%Y-%m-%d')}"
-            for i in range(5)
+            for i in range(days)
         ]
 
-    def parse_sessions(self, driver, url: str, movie_id: int = None, cinema_id: int = None) -> list[MalibuSessionSchema]:
-        """Парсит все сеансы и возвращает список валидированных схем"""
-        sessions = []
+    def parse_sessions(
+        self,
+        url: str,
+        movie_id: int | None = None,
+        cinema_id: int | None = None,
+    ) -> list[SessionSchema]:
+        """Парсит все сеансы на странице расписания с ранним выходом если нет сеансов."""
+        sessions: list[SessionSchema] = []
 
         try:
-            # Переходим по ссылке расписания конкретного дня
-            driver.get(url)
+            self.navigate(url)
+            self.sleep(2)  # Ожидание загрузки JS
 
-            # Ждём подгрузку блока с сеансами
-            from selenium.webdriver.support.ui import WebDriverWait
-            from selenium.webdriver.support import expected_conditions as EC
+            # 🔥 ранний выход - проверка наличия data-seance-id ПЕРЕД extractor
+            seance_elements = self.driver.find_elements(By.XPATH, ".//div[@data-seance-id]")
+            if not seance_elements:
+                logger.info("Нет seance-id элементов: %s", url)
+                return []
 
-            WebDriverWait(driver, 10).until(
-                EC.presence_of_all_elements_located((By.CSS_SELECTOR, self.selectors["schedule_block"]))
+            if not self.wait_for_element(
+                By.CSS_SELECTOR,
+                self.selectors["schedule_block"],
+            ):
+                logger.warning("Блоки сеансов не найдены: %s", url)
+                return []
+
+            schedule_blocks = self.driver.find_elements(
+                By.CSS_SELECTOR,
+                self.selectors["schedule_block"],
             )
 
-            schedule_blocks = driver.find_elements(By.CSS_SELECTOR, self.selectors["schedule_block"])
-
             for block in schedule_blocks:
-                block_sessions = self.extractor.parse_schedule_block(block)
-                
-                for session_data in block_sessions:
-                    session_datetime = self._extract_datetime_from_url(url, session_data["time"])
-                    validated_session = self._validate_session_data(
-                        session_data, session_datetime, movie_id, cinema_id
+                raw_sessions = self.extractor.parse_schedule_block(block)
+
+                for raw in raw_sessions:
+                    session_datetime = self._build_datetime(url, raw.get("time"))
+                    session = self._build_session_schema(
+                        raw,
+                        session_datetime,
+                        movie_id,
+                        cinema_id,
                     )
-                    if validated_session:
-                        sessions.append(validated_session)
+                    if session:
+                        sessions.append(session)
 
         except Exception as e:
-            logger.warning(f"Ошибка при парсинге расписания {url}: {e}")
+            logger.warning("Ошибка при парсинге расписания %s: %s", url, e)
 
         return sessions
 
-    def _validate_session_data(self, session_data: dict, session_datetime: datetime, 
-                             movie_id: int = None, cinema_id: int = None) -> MalibuSessionSchema | None:
-        """Валидация данных сеанса через Pydantic схему"""
+    def parse_sessions_with_stop(
+        self,
+        movie_url: str,
+        movie_id: int | None,
+        cinema_id: int | None,
+        days: int | None = None,
+    ) -> list[SessionSchema]:
+        """
+        Парсит сеансы с остановкой если нет сеансов несколько дней подряд.
+        
+        Архитектурная правка: вместо простого цикла по дням,
+        добавляем логику "early stop" для оптимизации.
+        
+        Args:
+            movie_url: Базовая ссылка на фильм
+            movie_id: ID фильма
+            cinema_id: ID кинотеатра
+            days: Количество дней для проверки (если None - используем из settings)
+            
+        Returns:
+            Все найденные сеансы до остановки
+        """
+        if days is None:
+            days = self.parsing_options.get("days_to_check", 5)
+
+        urls = self.form_urls(movie_url, days)
+        all_sessions: list[SessionSchema] = []
+        empty_days = 0
+        max_empty_days = self.parsing_options.get("max_empty_days", 2)
+
+        for url in urls:
+            try:
+                sessions = self.parse_sessions(
+                    url=url,
+                    movie_id=movie_id,
+                    cinema_id=cinema_id,
+                )
+
+                if not sessions:
+                    empty_days += 1
+                    logger.info("⛔ Нет сеансов на дату: %s", url)
+
+                    if empty_days >= max_empty_days:
+                        logger.info(
+                            "⏹️ Прекращаем парсинг — %d дня подряд без сеансов",
+                            max_empty_days,
+                        )
+                        break
+                else:
+                    empty_days = 0
+                    logger.info("📅 %s → найдено сеансов: %d", url, len(sessions))
+                    all_sessions.extend(sessions)
+
+            except Exception as e:
+                logger.warning("Ошибка при парсинге %s: %s", url, e)
+                empty_days += 1
+                if empty_days >= max_empty_days:
+                    logger.info(
+                        "⏹️ Прекращаем парсинг — %d ошибок подряд",
+                        max_empty_days,
+                    )
+                    break
+
+        return all_sessions
+
+    def _build_session_schema(
+        self,
+        data: dict,
+        session_datetime: datetime,
+        movie_id: int | None,
+        cinema_id: int | None,
+    ) -> SessionSchema | None:
+        """Создание и валидация SessionSchema"""
         try:
-            return MalibuSessionSchema(
-                session_id=session_data["session_id"],
+            return SessionSchema(
+                session_id=data["session_id"],
                 date=session_datetime,
                 movie_id=movie_id,
                 cinema_id=cinema_id,
-                updated_at=datetime.now()
+                updated_at=datetime.now(),
             )
-        except Exception as e:
-            logger.warning(f"Ошибка валидации данных сеанса: {e}, данные: {session_data}")
+        except ValueError as e:
+            logger.warning("Ошибка валидации сеанса: %s, данные=%s", e, data)
             return None
 
     @staticmethod
-    def _extract_datetime_from_url(url: str, seance_time: str) -> datetime:
-        """Извлекает дату из URL и комбинирует её со временем сеанса."""
+    def _build_datetime(url: str, time_str: str) -> datetime:
+        """Комбинирует дату из URL и время сеанса"""
         try:
-            date_str = url.split("date=")[1]
-            base_date = datetime.strptime(date_str, "%Y-%m-%d").date()
-            hours, minutes = map(int, seance_time.split(":"))
-            return datetime.combine(base_date, datetime.min.time()).replace(hour=hours, minute=minutes)
-        except Exception:
+            if not time_str or ":" not in time_str:
+                return datetime.now()
+
+            date_part = url.split("date=")[1]
+            base_date = datetime.strptime(date_part, "%Y-%m-%d").date()
+            hours, minutes = map(int, time_str.split(":"))
+            return datetime.combine(base_date, datetime.min.time()).replace(
+                hour=hours,
+                minute=minutes,
+            )
+        except (ValueError, IndexError):
             return datetime.now()

@@ -1,23 +1,24 @@
 import logging
 
-from src.cinemas.cinema_repository import CinemaRepository
-from src.cinemas.init_cinemas import init_cinemas
-from src.movies.movie_repository import MovieRepository
-from src.sessions.session_repository import SessionRepository
+from src.db.cinemas.cinema_repository import CinemaRepository
+from src.db.movies.movie_repository import MovieRepository
+from src.db.sessions.session_repository import SessionRepository
+from src.db.cinema_movie.cinema_movie_repository import CinemaMovieRepository
+from src.db.cinema_movie.cinema_movie_model import CinemaMovieModel
+from src.parsing_movie.abstract.controller import AbstractController
 
-from src.parsing_movie.malibu_cinema.main_page_parser import MalibuMainPageParser
-from src.parsing_movie.malibu_cinema.session_parser import MalibuSessionParser
-from src.utils.movie_detail_parser import MovieDetailParser
+from src.parsing_movie.malibu_cinema.malibu_settings import malibu_settings
 
 logger = logging.getLogger(__name__)
 
 
-class MalibuController:
+class MalibuController(AbstractController):
     def __init__(
         self,
         movie_repo: MovieRepository,
         cinema_repo: CinemaRepository,
         session_repo: SessionRepository,
+        cinema_movie_repo: CinemaMovieRepository,
         main_parser: MalibuMainPageParser,
         movie_detail_parser: MovieDetailParser,
         session_parser: MalibuSessionParser,
@@ -25,23 +26,18 @@ class MalibuController:
         self.movie_repo = movie_repo
         self.cinema_repo = cinema_repo
         self.session_repo = session_repo
+        self.cinema_movie_repo = cinema_movie_repo
         self.main_parser = main_parser
         self.movie_detail_parser = movie_detail_parser
         self.session_parser = session_parser
 
     def get_malibu_cinema_id(self) -> int:
-        cinema = self.cinema_repo.get_by_name("Малибу")
+        cinema = self.cinema_repo.get_by_name(malibu_settings.CINEMA_NAME)
         if cinema:
             return cinema.id
+        raise ValueError(f"Кинотеатр '{malibu_settings.CINEMA_NAME}' не найден в БД. Пожалуйста, выполните миграции алембика.")
 
-        init_cinemas(self.cinema_repo.db)
-        cinema = self.cinema_repo.get_by_name("Малибу")
-        if cinema:
-            return cinema.id
-
-        raise ValueError("Не удалось получить ID кинотеатра Малибу")
-
-    def malibu_movies_record(self):
+    def run(self):
         malibu_cinema_id = self.get_malibu_cinema_id()
 
         logger.info("Запуск парсера фильмов Малибу...")
@@ -53,15 +49,25 @@ class MalibuController:
 
         logger.info(f"Найдено фильмов: {len(films)}")
 
+        # 📊 Счётчики статистики
+        total_movies = 0
+        success_movies = 0
+        skipped_movies = 0
+        total_sessions = 0
+
         for idx, film_data in enumerate(films, start=1):
+            total_movies += 1
             title = film_data.get("title")
             malibu_url = film_data.get("url")
 
             logger.info(f"[{idx}/{len(films)}] Фильм: {title}")
 
             if not title:
-                logger.warning(f"✗ Название фильма отсутствует, пропускаем запись: {film_data}")
+                skipped_movies += 1
+                logger.warning(f"✗ Пропуск фильма без названия: {film_data}")
                 continue
+
+            success_movies += 1
 
             # 1️⃣ Детали фильма (общие)
             movie_details = self.movie_detail_parser.parse_by_title(title)
@@ -71,57 +77,112 @@ class MalibuController:
 
             # 2️⃣ Malibu-specific данные
             malibu_movie_id = self._extract_malibu_movie_id(malibu_url)
+            logger.debug(f"  malibu_url={malibu_url}, malibu_movie_id={malibu_movie_id}")
 
-            # 3️⃣ Сохранение
+            # 3️⃣ Сохранение фильма (global фильм без cinema-specific данных)
             movie = self.movie_repo.get_or_create(
                 name=movie_details.title,
-                cinema_id=malibu_cinema_id,
+                cinema_id=malibu_cinema_id,  # Используется для логики, но не сохраняется в MovieModel
                 defaults={
                     "description": movie_details.description,
                     "genre": ", ".join(movie_details.genres),
                     "poster": movie_details.poster_url,
                     "kinopoisk_id": movie_details.kinopoisk_id,
-                    "additional_data": {
-                        "url": malibu_url,
-                        "id_malibu": malibu_movie_id,
-                    },
-                    "related_movies": {
-                        malibu_cinema_id: malibu_movie_id
-                    } if malibu_movie_id else {},
+                    "additional_data": movie_details.additional_data,
                 },
             )
 
             logger.info(f"✓ Фильм сохранён: id={movie.id}")
 
-            # 4️⃣ Сеансы
-            self.update_movie_sessions(movie, malibu_cinema_id)
+            # 4️⃣ Обновляем связь фильм-кинотеатр с cinema-specific данными
+            # (get_or_create в MovieRepo создаёт простую связь без defaults,
+            #  теперь обновляем её с cinema_movie_id и cinema_movie_url)
+            cinema_movie = self.cinema_movie_repo.get_by_cinema_and_movie(
+                cinema_id=malibu_cinema_id,
+                movie_id=movie.id
+            )
+            
+            logger.debug(f"  cinema_movie найдена: {cinema_movie is not None}")
+            if cinema_movie:
+                logger.debug(f"    cinema_movie_id={cinema_movie.cinema_movie_id}, cinema_movie_url={cinema_movie.cinema_movie_url}")
+            
+            if cinema_movie and (not cinema_movie.cinema_movie_id or not cinema_movie.cinema_movie_url):
+                # Обновляем существующую связь с cinema-specific данными
+                logger.info(f"  Обновляем cinema_movie: cinema_movie_id={malibu_movie_id}, cinema_movie_url={malibu_url}")
+                self.cinema_movie_repo.update(
+                    cinema_id=malibu_cinema_id,
+                    movie_id=movie.id,
+                    data={
+                        "cinema_movie_id": malibu_movie_id,
+                        "cinema_movie_url": malibu_url,
+                    }
+                )
+                logger.info(f"✓ Связь фильм-кинотеатр обновлена: cinema_movie_id={malibu_movie_id}")
+            elif not cinema_movie:
+                # Это не должно случиться, но на всякий случай создаём
+                cinema_movie = self.cinema_movie_repo.get_or_create(
+                    cinema_id=malibu_cinema_id,
+                    movie_id=movie.id,
+                    defaults={
+                        "cinema_movie_id": malibu_movie_id,
+                        "cinema_movie_url": malibu_url,
+                    },
+                )
+                logger.info(f"✓ Связь фильм-кинотеатр создана: cinema_movie_id={cinema_movie.cinema_movie_id}")
 
-    def update_movie_sessions(self, movie, cinema_id: int):
-        movie_url = movie.additional_data.get("url")
+            # 5️⃣ Сеансы
+            sessions_count = self.update_movie_sessions(cinema_movie, malibu_cinema_id)
+            total_sessions += sessions_count
+
+        # 📊 Финальный лог с итогами
+        logger.info("=" * 80)
+        logger.info("📊 ИТОГИ MALIBU ПАРСЕРА:")
+        logger.info(f"Всего фильмов: {total_movies}")
+        logger.info(f"Успешно обработано: {success_movies}")
+        logger.info(f"Пропущено: {skipped_movies}")
+        logger.info(f"Всего сеансов: {total_sessions}")
+        logger.info("=" * 80)
+
+    def update_movie_sessions(self, cinema_movie: CinemaMovieModel, cinema_id: int) -> int:
+        """
+        Парсинг и сохранение сеансов для фильма в кинотеатре.
+        
+        Returns:
+            Количество сохранённых сеансов
+        """
+        # Берём URL из cinema_movie, где хранятся cinema-specific данные
+        movie_url = cinema_movie.cinema_movie_url
         if not movie_url:
-            return
+            logger.warning(
+                f"Нет cinema_movie_url для фильма '{cinema_movie.movie.name}', пропускаем парсинг сеансов"
+            )
+            return 0
 
         urls = self.session_parser.form_urls(movie_url)
+        sessions_saved = 0
 
         for url in urls:
             sessions = self.session_parser.parse_sessions(
-                driver=self.main_parser.driver,
                 url=url,
-                movie_id=movie.id,
-                cinema_id=cinema_id
+                movie_id=cinema_movie.movie_id,
+                cinema_id=cinema_id,
             )
 
             for session in sessions:
                 self.session_repo.get_or_create(
-                    session_id=session.session_id,
-                    cinema_id=session.cinema_id,
                     defaults={
-                        "date": session.date,
+                        "session_id": session.session_id,  # может быть None
+                        "cinema_id": session.cinema_id,
                         "movie_id": session.movie_id,
-                    },
+                        "date": session.date,
+                    }
                 )
+                sessions_saved += 1
 
-        logger.info(f"Сеансы обновлены для '{movie.name}'")
+        logger.info(
+            f"🎬 {cinema_movie.movie.name} | сеансов: {sessions_saved}"
+        )
+        return sessions_saved
 
     # ----------------------
     # Приватный метод
@@ -130,5 +191,8 @@ class MalibuController:
         """Извлечение ID фильма из URL Малибу"""
         if not url:
             return None
-        parts = url.rstrip("/").split("/")
+        # Сначала удаляем все параметры после '?'
+        url_without_params = url.split("?")[0]
+        # Теперь извлекаем последний элемент
+        parts = url_without_params.rstrip("/").split("/")
         return parts[-1] if parts else None

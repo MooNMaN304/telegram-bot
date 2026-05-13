@@ -6,7 +6,12 @@ from datetime import datetime
 from datetime import date
 
 from src.settings import settings
-from src.application.bot.keyboards import admin_keyboard, user_keyboard, film_for_today, sessions_by_film
+from src.application.bot.keyboards import (
+    admin_keyboard,
+    user_keyboard,
+    film_for_today,
+    sessions_by_film,
+)
 from src.application.admin_commands import run_parsing
 from src.application.value import get_malibu_controller
 from src.application.value import get_user_service, get_movie_repository
@@ -31,11 +36,7 @@ def register_handlers(bot: TeleBot):
             kb = user_keyboard()
             text = "🤖 Бот готов к работе!\nЧто хотите сделать?"
 
-        bot.send_message(
-            message.chat.id,
-            text,
-            reply_markup=kb
-        )
+        bot.send_message(message.chat.id, text, reply_markup=kb)
 
     # ---------------------------
     #  Админ → запуск парсинга
@@ -53,8 +54,7 @@ def register_handlers(bot: TeleBot):
         bot.send_message(chat_id, "🔄 Выполняется парсинг...")
 
         try:
-            controller = get_malibu_controller()
-            msg = run_parsing(controller)
+            msg = run_parsing()
             bot.send_message(chat_id, f"✅ {msg}")
         except Exception as e:
             logging.exception("Ошибка при выполнении парсинга")
@@ -75,32 +75,26 @@ def register_handlers(bot: TeleBot):
             return
 
         text = "🎬 Фильмы с сеансами сегодня:\n\n"
-        
-        bot.send_message(
-            call.message.chat.id,
-            text,
-            reply_markup=film_for_today(movies)
-        )
-        
+
+        bot.send_message(call.message.chat.id, text, reply_markup=film_for_today(movies))
+
     @bot.callback_query_handler(func=lambda call: call.data[:8] == "sessions")
     def get_sessions_by_film(call: CallbackQuery):
         chat_id = call.message.chat.id
 
         movie_repo = get_movie_repository()
-        sessions = movie_repo.get_sessions_by_movie_and_date(int(call.data[8:]), session_date=date.today())
+        sessions = movie_repo.get_sessions_by_movie_and_date(
+            int(call.data[8:]), session_date=date.today()
+        )
 
         if not sessions:
             bot.send_message(chat_id, "Сегодня нет показов.")
             return
 
         text = "🎬 Cеансы на сегодня:\n\n"
-        
-        bot.send_message(
-            call.message.chat.id,
-            text,
-            reply_markup=sessions_by_film(sessions)
-        )
-        
+
+        bot.send_message(call.message.chat.id, text, reply_markup=sessions_by_film(sessions))
+
     # @bot.callback_query_handler(func=lambda call: call.data[8:] == "sessions")
     # def get(call: CallbackQuery):
     #     chat_id = call.message.chat.id
@@ -113,7 +107,7 @@ def register_handlers(bot: TeleBot):
     #         return
 
     #     text = "🎬 Фильмы с сеансами сегодня:\n\n"
-        
+
     #     bot.send_message(
     #         call.message.chat.id,
     #         text,
@@ -121,5 +115,4 @@ def register_handlers(bot: TeleBot):
     #     )
 
 
-
-#TODO сделать работающие клавиатуры
+# TODO сделать работающие клавиатуры

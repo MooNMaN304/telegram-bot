@@ -3,10 +3,10 @@ import random
 import pytest
 from sqlalchemy.orm import Session 
 
-from src.movies.movie_model import MovieModel
-from src.movies.movie_repository import MovieRepository
+from src.db.movies.movie_model import MovieModel
+from src.db.movies.movie_repository import MovieRepository
 
-from src.sessions.session_model import SessionModel
+from src.db.sessions.session_model import SessionModel
  
 from datetime import date
 
@@ -92,7 +92,6 @@ def test_create_movie(test_session, generate_cinemas):
     movie = repo.create({
         "name": "Большой куш",
         "genre": "Криминал",
-        "cinema_id": cinema.id,
         "related_movies": {}
     })
 
@@ -131,7 +130,14 @@ def test_get_or_create_returns_existing(test_session, create_specific_movie):
         SessionModel
     )
 
-    cinema_id = create_specific_movie.cinema_id
+    # Получаем кинотеатр из связей
+    from src.db.cinema_movie.cinema_movie_model import CinemaMovieModel
+    cinema_movie = (
+        test_session.query(CinemaMovieModel)
+        .filter(CinemaMovieModel.movie_id == create_specific_movie.id)
+        .first()
+    )
+    cinema_id = cinema_movie.cinema_id
 
     movie2 = repo.get_or_create(
         name="Карты, деньги, два ствола",
