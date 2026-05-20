@@ -1,9 +1,12 @@
 import logging
 from celery import Celery, shared_task
 
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+import chromedriver_autoinstaller
+
 from src.application.value import get_malibu_controller, build_kinomax_controller
 from src.settings import settings
-from src.base.base_parser import BaseParser
 
 logger = logging.getLogger(__name__)
 
@@ -75,7 +78,6 @@ def run_malibu_parser_task():
 
 
 def run_all_parsers_async(city: str = "Липецк") -> dict:
-    # Если вернёшься к Celery — раскомментируй
     celery_configure()
     kinomax_job = run_kinomax_parser_task.delay(city=city)
     malibu_job = run_malibu_parser_task.delay()
@@ -83,14 +85,6 @@ def run_all_parsers_async(city: str = "Липецк") -> dict:
         "kinomax_task_id": kinomax_job.id,
         "malibu_task_id": malibu_job.id,
     }
-
-    # Пока просто синхронный вызов для локального тестирования
-    # kinomax_result = run_kinomax_parser_task(city=city)
-    # malibu_result = run_malibu_parser_task()
-    # return {
-    #     "kinomax": kinomax_result,
-    #     "malibu": malibu_result,
-    # }
 
 
 def setup_local_chrome_driver():

@@ -1,4 +1,3 @@
-import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.engine import Engine
@@ -17,18 +16,6 @@ from faker import Faker
 
 from datetime import datetime, timedelta
 import uuid
-
-
-# # Абсолютный путь к базе
-# BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-# DB_PATH = os.path.join(BASE_DIR, "test.db")
-# DATABASE_URL = f"sqlite:///{DB_PATH}"
-
-# # Создаём движок SQLAlchemy
-# engine = create_engine(DATABASE_URL, echo=True, future=True)
-
-# # Создаём локальную фабрику сессий
-# SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
 # Фикстура для тестового движка

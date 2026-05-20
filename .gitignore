@@ -199,3 +199,12 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# Project-specific temporary / generated files
+*.log
+screen_shot/
+session_screen/
+*_copy.txt
+browserless-redis-app/
+debug_html.py
+test_parser.py

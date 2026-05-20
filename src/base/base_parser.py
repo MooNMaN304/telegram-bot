@@ -35,23 +35,6 @@ class BaseParser:
         else:
             logger.debug("Используется переданный драйвер")
 
-    # def _setup_driver(self):
-    #     """Настройка Selenium ChromeDriver"""
-    #     try:
-    #         path = chromedriver_autoinstaller.install()
-    #         #service = Service(path)
-    #         #self.driver = webdriver.Chrome(service=service)
-    #         options = Options()
-    #         remote_url = getattr(settings, "REMOTE_SELENIUM_URL", None)
-    #         self.driver = webdriver.Remote(
-    #                 command_executor=remote_url,
-    #                 options=options,
-    #             )
-    #         logger.info("ChromeDriver успешно запущен")
-    #     except Exception as e:
-    #         logger.error(f"Ошибка при настройке драйвера: {e}")
-    #         raise
-
     def _setup_driver(self):
         try:
             remote_url = settings.REMOTE_SELENIUM_URL

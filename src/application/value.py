@@ -6,33 +6,21 @@ from src.db.cinemas.cinema_repository import CinemaRepository
 from src.db.cinemas.cinema_model import CinemaModel
 from src.db.sessions.session_repository import SessionRepository
 from src.db.sessions.session_model import SessionModel
+from src.db.sessions.gigachat_response_schema import GigaChatScheduleResponse
 from src.db.cinema_movie.cinema_movie_repository import CinemaMovieRepository
 from src.db.cinema_movie.cinema_movie_model import CinemaMovieModel
 from src.db.user.user_model import UserModel
 from src.db.user.user_repository import UserRepository
-from src.utils.kino_api.client import KinoAPIClient
-
-from src.utils.movie_detail_parser import MovieDetailParser
-
-from src.parsing_movie.malibu_cinema.session_extractor import MalibuSessionExtractor
-from src.parsing_movie.malibu_cinema.malibu_settings import malibu_settings
 from src.db.user.user_service import UserService
 from src.db.movies.movie_service import MovieService
 
-from src.db.cinemas.cinema_model import CinemaModel
-from src.db.cinemas.cinema_repository import CinemaRepository
-from src.db.cinema_movie.cinema_movie_model import CinemaMovieModel
-from src.db.cinema_movie.cinema_movie_repository import CinemaMovieRepository
-from src.db.database import get_session
-from src.db.movies.movie_model import MovieModel
-from src.db.movies.movie_repository import MovieRepository
-from src.db.sessions.gigachat_response_schema import GigaChatScheduleResponse
-from src.db.sessions.session_model import SessionModel
-from src.db.sessions.session_repository import SessionRepository
-from src.settings import settings
-from src.utils.gigachat_request import GigaChatScheduleParser
 from src.utils.kino_api.client import KinoAPIClient
 from src.utils.movie_detail_parser import MovieDetailParser
+from src.utils.gigachat_request import GigaChatScheduleParser
+
+from src.parsing_movie.malibu_cinema.session_extractor import MalibuSessionExtractor
+from src.parsing_movie.malibu_cinema.malibu_settings import malibu_settings
+
 from src.settings import settings
 
 session = get_session()

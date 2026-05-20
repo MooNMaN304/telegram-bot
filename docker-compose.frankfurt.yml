@@ -1,0 +1,65 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: cinema-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: cinema_user
+      POSTGRES_PASSWORD: cinema_pass
+      POSTGRES_DB: cinema_db
+    command:
+      - "postgres"
+      - "-c"
+      - "listen_addresses=*"
+      - "-c"
+      - "max_connections=200"
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U cinema_user -d cinema_db" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - frankfurt_network
+
+  redis:
+    image: redis:7-alpine
+    container_name: telegram_bot_redis
+    command: redis-server --requirepass SUPER_SECRET_PASSWORD
+    healthcheck:
+      test: [ "CMD", "redis-cli", "-a", "SUPER_SECRET_PASSWORD", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - frankfurt_network
+    restart: unless-stopped
+
+  bot:
+    build:
+      context: .
+      dockerfile: Dockerfile.bot
+    entrypoint: [ "/src/entrypoint.bot.sh" ]
+    container_name: telegram_bot_app
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      - PYTHONPATH=/src
+    volumes:
+      - .:/src
+    networks:
+      - frankfurt_network
+    restart: unless-stopped
+
+networks:
+  frankfurt_network:
+    driver: bridge
+
+volumes:
+  postgres_data:

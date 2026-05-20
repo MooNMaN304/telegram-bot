@@ -1,0 +1,42 @@
+services:
+  browserless:
+    image: browserless/chrome:latest
+    container_name: telegram_bot_browserless
+    ports:
+      - "3000:3000"
+    environment:
+      - MAX_CONCURRENT_SESSIONS=1
+      - CONNECTION_TIMEOUT=600000
+      - PREBOOT_CHROME=true
+      - LOG_LEVEL=info
+      - DEFAULT_LAUNCH_ARGS=["--disable-logging"]
+    networks:
+      - moscow_network
+    restart: unless-stopped
+
+  celery_worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.celery
+    container_name: telegram_bot_celery_worker
+    depends_on:
+      browserless:
+        condition: service_started
+    env_file:
+      - .env
+    environment:
+      - PYTHONPATH=/src
+      # Redis находится во Франкфурте - адрес настраивается в .env через CELERY_BROKER_URL
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL}
+      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND}
+      - REMOTE_SELENIUM_URL=http://browserless:3000/webdriver
+    command: celery -A src.parsing_movie.celery:celery_app worker --loglevel=info --concurrency=1
+    volumes:
+      - .:/src
+    networks:
+      - moscow_network
+    restart: unless-stopped
+
+networks:
+  moscow_network:
+    driver: bridge
