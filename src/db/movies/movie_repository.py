@@ -10,11 +10,16 @@ from sqlalchemy import func
 
 class MovieRepository:
     def __init__(
-        self, session: Session, movie_model: type[MovieModel], session_model: SessionModel
+        self,
+        session: Session,
+        movie_model: type[MovieModel],
+        session_model: type[SessionModel],
+        cinema_movie_model: type[CinemaMovieModel],
     ):
         self.db = session
         self.movie_model = movie_model
         self.session_model = session_model
+        self.cinema_movie_model = cinema_movie_model
 
     def get_all(self) -> List[MovieModel]:
         return self.db.query(self.movie_model).all()
@@ -146,24 +151,35 @@ class MovieRepository:
         return relation
 
     # фильмы с сеансами на сегодня
-    def get_movies_with_sessions_today(self):
+    def get_movies_with_sessions_today(self) -> List[MovieModel]:
+        """
+        Получает список фильмов, у которых есть сеансы на сегодня.
+        Использует подзапрос для обхода проблемы DISTINCT с JSON полями в PostgreSQL.
+        """
         today = date.today()
+        # Подзапрос для получения уникальных ID фильмов с сеансами на сегодня
+        # Это обходит проблему "could not identify an equality operator for type json"
         return (
             self.db.query(self.movie_model)
-            .join(self.session_model)
-            .filter(func.date(self.session_model.date) == today)
-            .all()
-        )
-
-    # сеансы фильма по дате
-    def get_sessions_by_movie_and_date(
-        self, movie_id: int, session_date: date
-    ) -> list[SessionModel]:
-        return (
-            self.db.query(self.session_model)
             .filter(
-                self.session_model.movie_id == movie_id,
-                func.date(self.session_model.date) == session_date,
+                self.movie_model.id.in_(
+                    self.db.query(self.session_model.movie_id)
+                    .filter(func.date(self.session_model.date) == today)
+                    .distinct()
+                )
             )
             .all()
         )
+
+    def get_movies_by_cinema(self, cinema_id: int) -> List[MovieModel]:
+        """
+        Получает все фильмы, которые идут в конкретном кинотеатре.
+        DEPRECATED: Использовать CinemaMovieRepository.get_movies_by_cinema() вместо этого.
+        """
+        return (
+            self.db.query(self.movie_model)
+            .join(self.cinema_movie_model)
+            .filter(self.cinema_movie_model.cinema_id == cinema_id)
+            .all()
+        )
+

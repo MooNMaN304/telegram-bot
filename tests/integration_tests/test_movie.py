@@ -7,6 +7,7 @@ from src.db.movies.movie_model import MovieModel
 from src.db.movies.movie_repository import MovieRepository
 
 from src.db.sessions.session_model import SessionModel
+from src.db.cinema_movie.cinema_movie_model import CinemaMovieModel
  
 from datetime import date
 
@@ -30,7 +31,8 @@ def test_get_movie_by_id(test_session, create_specific_movie):
     repo = MovieRepository(
         test_session,
         MovieModel,
-        SessionModel
+        SessionModel,
+        CinemaMovieModel
     )
 
     movie = create_specific_movie
@@ -48,7 +50,8 @@ def test_search_movie_by_name(test_session, create_specific_movie):
     repo = MovieRepository(
         test_session,
         MovieModel,
-        SessionModel
+        SessionModel,
+        CinemaMovieModel
     )
 
     result = repo.search_by_name("Карты")
@@ -63,7 +66,8 @@ def test_update_movie(test_session, create_specific_movie):
     repo = MovieRepository(
         test_session,
         MovieModel,
-        SessionModel
+        SessionModel,
+        CinemaMovieModel
     )
 
     movie = create_specific_movie
@@ -84,15 +88,13 @@ def test_create_movie(test_session, generate_cinemas):
     repo = MovieRepository(
         test_session,
         MovieModel,
-        SessionModel
+        SessionModel,
+        CinemaMovieModel
     )
-
-    cinema = generate_cinemas[0]
 
     movie = repo.create({
         "name": "Большой куш",
-        "genre": "Криминал",
-        "related_movies": {}
+        "genre": "Криминал"
     })
 
     assert movie.id is not None
@@ -106,7 +108,8 @@ def test_get_or_create_creates_movie(test_session, generate_cinemas):
     movi_repo = MovieRepository(
         test_session,
         MovieModel,
-        SessionModel
+        SessionModel,
+        CinemaMovieModel
     )
 
     cinema = generate_cinemas[0]
@@ -127,11 +130,11 @@ def test_get_or_create_returns_existing(test_session, create_specific_movie):
     repo = MovieRepository(
         test_session,
         MovieModel,
-        SessionModel
+        SessionModel,
+        CinemaMovieModel
     )
 
     # Получаем кинотеатр из связей
-    from src.db.cinema_movie.cinema_movie_model import CinemaMovieModel
     cinema_movie = (
         test_session.query(CinemaMovieModel)
         .filter(CinemaMovieModel.movie_id == create_specific_movie.id)
@@ -157,7 +160,8 @@ def test_get_movies_with_sessions_today(
     movi_repo = MovieRepository(
         test_session,
         MovieModel,
-        SessionModel
+        SessionModel,
+        CinemaMovieModel
     )
 
     movies = movi_repo.get_movies_with_sessions_today()

@@ -126,7 +126,6 @@ def generate_movies(test_session, generate_cinemas, request) -> list[MovieModel]
             description=fake.text(max_nb_chars=200),
             poster=fake.image_url(),
             additional_data={"rating": fake.random_int(min=1, max=10)},
-            related_movies={}
         )
 
         test_session.add(movie)
@@ -165,7 +164,6 @@ def create_specific_movie(
         ),
         poster="https://example.com/poster.jpg",
         additional_data={"rating": 9},
-        related_movies={}
     )
 
     test_session.add(movie)

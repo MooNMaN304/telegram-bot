@@ -16,6 +16,5 @@ if __name__ == "__main__":
     # Получайте логгер в модулях
     logger = get_logger(__name__)
     #init_db() #удаляем инициализацию БД, так как она уже выполняется в alembic/env.py
-    logger.info("DB tables are initialized")
-    logger.info("Стандартная библиотека logging")
+    logger.info("Starting Telegram Bot...")
     run_bot()

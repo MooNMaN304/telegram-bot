@@ -3,15 +3,22 @@
 Функции в этом модуле работают с HTML strings без использования Selenium.
 """
 
+import logging
 from lxml import html
 from typing import List, Set
 from urllib.parse import urlparse
 from src.parsing_movie.malibu_cinema.malibu_settings import malibu_settings
 
+logger = logging.getLogger(__name__)
+
 
 def extract_release_links(page_html: str) -> List[str]:
     """
-    Извлекает уникальные ссылки на релизы из основного контейнера.
+    Извлекает уникальные ссылки на релизы только из основного контейнера (без soon).
+    
+    Фильтрует:
+    - Только releases-list контейнер (основной список фильмов)
+    - Исключает releases-item_soon (скоро в кино)
     
     Args:
         page_html: HTML страницы сырой текст
@@ -20,9 +27,11 @@ def extract_release_links(page_html: str) -> List[str]:
         Список уникальных ID релизов в порядке появления
         
     Примеры:
-        >>> html = '''<div class="releases-container">
-        ...     <a href="/release/1234">Film 1</a>
-        ...     <a href="/release/1234">Film 1</a>
+        >>> html = '''<div class="releases-list">
+        ...     <div class="releases-container">
+        ...         <a class="releases-item" href="/release/1234">Film 1</a>
+        ...         <a class="releases-item releases-item_soon" href="/release/5678">Soon</a>
+        ...     </div>
         ... </div>'''
         >>> extract_release_links(html)
         ['1234']
@@ -31,19 +40,22 @@ def extract_release_links(page_html: str) -> List[str]:
         return []
 
     try:
-        tree = html.fromstring(page_html)
+        # Оборачиваем в корневой элемент для корректного парсирования фрагментов
+        wrapped_html = f'<div>{page_html}</div>'
+        tree = html.fromstring(wrapped_html)
     except Exception:
         return []
 
-    # Найти основной контейнер релизов
-    container_xpath = malibu_settings.HTML_UTILS_SELECTORS["release_links"]["container_xpath"]
+    # ✅ Найти основной контейнер релизов (только releases-list, исключая soon)
+    container_xpath = malibu_settings.MAIN_PAGE_SELECTORS["container_xpath"]
     container = tree.xpath(container_xpath)
     if not container:
+        logger.warning("Контейнер releases-list не найден")
         return []
 
-    # Поиск ссылок ТОЛЬКО внутри контейнера
-    link_xpath = malibu_settings.HTML_UTILS_SELECTORS["release_links"]["link_xpath"]
-    links = container[0].xpath(link_xpath)
+    # ✅ Поиск ссылок ТОЛЬКО активные (без soon)
+    links_xpath = malibu_settings.MAIN_PAGE_SELECTORS["movie_links_xpath"]
+    links = container[0].xpath(links_xpath)
     
     seen: Set[str] = set()
     result: List[str] = []
@@ -53,18 +65,18 @@ def extract_release_links(page_html: str) -> List[str]:
         if not href:
             continue
             
-        # Извлечь ID из href: "/release/123456" -> "123456"
-        release_path = malibu_settings.HTML_UTILS_SELECTORS["release_links"]["release_path"]
+        # Извлечь ID из href: "/release/123456" -> "123456" или "/release/123456/" -> "123456"
         try:
-            release_id = href.split(release_path)[1].split("/")[0].split("?")[0]
+            release_id = href.split("/release/")[1].split("?")[0].rstrip("/")
             
-            # Проверка что это цифры (исключаем "soon" и другие строки)
+            # Проверка что это цифры (исключаем другие строки)
             if release_id.isdigit() and release_id not in seen:
                 seen.add(release_id)
                 result.append(release_id)
         except (IndexError, AttributeError):
             continue
     
+    logger.info("Отфильтровано релизов (без soon): %d", len(result))
     return result
 
 

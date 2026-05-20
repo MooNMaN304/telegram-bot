@@ -50,6 +50,8 @@ services:
       - MAX_CONCURRENT_SESSIONS=5
       - CONNECTION_TIMEOUT=600000
       - PREBOOT_CHROME=true
+      - LOG_LEVEL=info
+      - DEFAULT_LAUNCH_ARGS=["--disable-logging"]
     networks:
       - app_network
     restart: unless-stopped
@@ -73,6 +75,7 @@ services:
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
       - REMOTE_SELENIUM_URL=http://browserless:3000/webdriver
+    command: celery -A src.parsing_movie.celery:celery_app worker --loglevel=info --concurrency=1
     volumes:
       - .:/src
     networks:

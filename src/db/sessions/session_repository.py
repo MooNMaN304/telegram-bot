@@ -1,4 +1,5 @@
 from typing import List, Optional, Tuple
+from datetime import date
 from sqlalchemy.orm import Session
 from .session_model import SessionModel
 
@@ -93,6 +94,18 @@ class SessionRepository:
         """Получить все сеансы по фильму"""
         return (
             self.db.query(self.session_model).filter(self.session_model.movie_id == movie_id).all()
+        )
+
+    def get_by_movie_and_date(self, movie_id: int, session_date: date) -> List[SessionModel]:
+        """Получить сеансы фильма на конкретную дату"""
+        from sqlalchemy import func
+        return (
+            self.db.query(self.session_model)
+            .filter(
+                self.session_model.movie_id == movie_id,
+                func.date(self.session_model.date) == session_date,
+            )
+            .all()
         )
 
     def get_by_cinema(self, cinema_id: int) -> List[SessionModel]:

@@ -24,7 +24,7 @@ class MalibuMainPageParser(BaseParser):
             self.press_escape()
 
             # ждём контейнер (у тебя уже XPath)
-            container_xpath = self.settings.MAIN_PAGE_SELECTORS["movies_container_xpath"]
+            container_xpath = self.settings.MAIN_PAGE_SELECTORS["container_xpath"]
 
             if not self.wait_for_element(By.XPATH, container_xpath):
                 logger.warning("Контейнер фильмов не найден")

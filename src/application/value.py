@@ -15,11 +15,9 @@ from src.utils.kino_api.client import KinoAPIClient
 from src.utils.movie_detail_parser import MovieDetailParser
 
 from src.parsing_movie.malibu_cinema.session_extractor import MalibuSessionExtractor
-from src.parsing_movie.malibu_cinema.main_page_parser import MalibuMainPageParser
-from src.parsing_movie.malibu_cinema.session_parser import MalibuSessionParser
-from src.parsing_movie.malibu_cinema.controller import MalibuController
 from src.parsing_movie.malibu_cinema.malibu_settings import malibu_settings
 from src.db.user.user_service import UserService
+from src.db.movies.movie_service import MovieService
 
 from src.db.cinemas.cinema_model import CinemaModel
 from src.db.cinemas.cinema_repository import CinemaRepository
@@ -31,9 +29,6 @@ from src.db.movies.movie_repository import MovieRepository
 from src.db.sessions.gigachat_response_schema import GigaChatScheduleResponse
 from src.db.sessions.session_model import SessionModel
 from src.db.sessions.session_repository import SessionRepository
-from src.parsing_movie.kinomax_cinema.controller import KinomaxController
-from src.parsing_movie.kinomax_cinema.main_page_parser import KinomaxMainPageParser
-from src.parsing_movie.kinomax_cinema.session_parser import KinomaxSessionParser
 from src.settings import settings
 from src.utils.gigachat_request import GigaChatScheduleParser
 from src.utils.kino_api.client import KinoAPIClient
@@ -51,7 +46,12 @@ def _resolve_gigachat_credentials():
 
 # --- Репозитории ---
 def get_movie_repository():
-    return MovieRepository(session=session, movie_model=MovieModel, session_model=SessionModel)
+    return MovieRepository(
+        session=session,
+        movie_model=MovieModel,
+        session_model=SessionModel,
+        cinema_movie_model=CinemaMovieModel,
+    )
 
 
 def get_cinema_repository():
@@ -63,7 +63,12 @@ def get_session_repository():
 
 
 def get_cinema_movie_repository():
-    return CinemaMovieRepository(session=session, cinema_movie_model=CinemaMovieModel)
+    return CinemaMovieRepository(
+        session=session, 
+        cinema_movie_model=CinemaMovieModel,
+        session_model=SessionModel,
+        movie_model=MovieModel,
+    )
 
 
 def get_user_repository():
@@ -77,6 +82,7 @@ def get_session_extractor():
 
 def get_main_parser(driver=None):
     """Parser инициализирует extractor сам."""
+    from src.parsing_movie.malibu_cinema.main_page_parser import MalibuMainPageParser
     return MalibuMainPageParser(driver=driver, wait_time=settings.WAIT_PAGE_LOAD)
 
 
@@ -86,6 +92,7 @@ def get_movie_detail_parser(driver=None):
 
 
 def get_session_parser(driver=None):
+    from src.parsing_movie.malibu_cinema.session_parser import MalibuSessionParser
     return MalibuSessionParser(
         driver=driver,
         wait_time=settings.WAIT_PAGE_LOAD,
@@ -94,6 +101,7 @@ def get_session_parser(driver=None):
 
 # --- Сервисы ---
 def get_malibu_controller(driver=None):
+    from src.parsing_movie.malibu_cinema.controller import MalibuController
     return MalibuController(
         movie_repo=get_movie_repository(),
         cinema_repo=get_cinema_repository(),
@@ -104,7 +112,8 @@ def get_malibu_controller(driver=None):
         session_parser=get_session_parser(driver=driver),
     )
 
-def build_kinomax_controller(driver=None) -> KinomaxController:
+def build_kinomax_controller(driver=None):
+    from src.parsing_movie.kinomax_cinema.controller import KinomaxController
     session = get_session()
 
     # =========================
@@ -114,6 +123,7 @@ def build_kinomax_controller(driver=None) -> KinomaxController:
         session=session,
         movie_model=MovieModel,
         session_model=SessionModel,
+        cinema_movie_model=CinemaMovieModel,
     )
 
     cinema_repo = CinemaRepository(
@@ -129,11 +139,14 @@ def build_kinomax_controller(driver=None) -> KinomaxController:
     cinema_movie_repo = CinemaMovieRepository(
         session=session,
         cinema_movie_model=CinemaMovieModel,
+        session_model=SessionModel,
+        movie_model=MovieModel,
     )
 
     # =========================
     # PARSERS
     # =========================
+    from src.parsing_movie.kinomax_cinema.main_page_parser import KinomaxMainPageParser
     main_parser = KinomaxMainPageParser(
         driver=driver,
         wait_time=settings.WAIT_PAGE_LOAD,
@@ -147,6 +160,7 @@ def build_kinomax_controller(driver=None) -> KinomaxController:
         max_retries=3,
     )
 
+    from src.parsing_movie.kinomax_cinema.session_parser import KinomaxSessionParser
     session_parser = KinomaxSessionParser(
         driver=driver,
         gigachat_parser=gigachat_parser,
@@ -173,3 +187,11 @@ def build_kinomax_controller(driver=None) -> KinomaxController:
 def get_user_service():
     user_repo = get_user_repository()
     return UserService(user_repo=user_repo)
+
+
+def get_movie_service():
+    return MovieService(
+        movie_repo=get_movie_repository(),
+        session_repo=get_session_repository(),
+        cinema_movie_repo=get_cinema_movie_repository(),
+    )

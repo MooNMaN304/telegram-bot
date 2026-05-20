@@ -101,6 +101,37 @@ LOGGING_CONFIG = {
         "level": "INFO",
         "handlers": ["console", "file"],
     },
+    "loggers": {
+        # Подавляем шумные логи внешних библиотек
+        "telebot": {
+            "level": "CRITICAL",
+            "propagate": False,
+        },
+        "telebot.util": {
+            "level": "CRITICAL",
+            "propagate": False,
+        },
+        "telebot.apihelper": {
+            "level": "CRITICAL",
+            "propagate": False,
+        },
+        "sqlalchemy": {
+            "level": "WARNING",
+            "propagate": False,
+        },
+        "sqlalchemy.engine": {
+            "level": "WARNING",
+            "propagate": False,
+        },
+        "selenium": {
+            "level": "WARNING",
+            "propagate": False,
+        },
+        "urllib3": {
+            "level": "WARNING",
+            "propagate": False,
+        },
+    },
 }
 
 

@@ -7,11 +7,14 @@ class MaliBuSettings(BaseSettings):
     CINEMA_NAME: str = "Малибу"
 
     # -------- селекторы для главной страницы --------
-      # Главная страница
     MAIN_PAGE_SELECTORS: Dict = {
-        "movies_container_xpath": "//div[contains(@class, 'releases-list')]",
+        # Основной контейнер релизов (сейчас в прокате)
+        "container_xpath": "//div[contains(@class, 'releases-list')]//div[contains(@class, 'releases-container')]",
+        # Карточки ТОЛЬКО активные (без soon)
+        "movie_links_xpath": ".//a[contains(@class, 'releases-item') and not(contains(@class, 'releases-item_soon'))]",
+        # Для других функций (извлечение карточек)
         "soon_container_id": "releasesSoon",
-        "soon_class_part": "soon"
+        "soon_class_part": "soon",
     }
 
     # Селекторы для сеансов (расписания)
