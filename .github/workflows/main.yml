@@ -62,12 +62,17 @@ jobs:
             git clean -fd
             git pull origin master
 
+            # Fix permissions
+            echo "[2/3] Fixing permissions..."
+            chmod +x entrypoint.bot.sh
+            chmod +x scripts/*.sh 2>/dev/null || true
+
             # Build and restart bot
-            echo "[2/3] Building and restarting bot..."
+            echo "[3/4] Building and restarting bot..."
             docker compose -f docker-compose.frankfurt.yml up -d --build
 
             # Start observability stack
-            echo "[3/3] Starting observability stack..."
+            echo "[4/4] Starting observability stack..."
             docker compose -f docker-compose.observability.yml up -d
 
             echo "=== Frankfurt deployment complete! ==="

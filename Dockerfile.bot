@@ -25,4 +25,7 @@ ENV PYTHONPATH=/src
 
 RUN chmod +x /src/entrypoint.bot.sh
 
+# Дополнительно снимаем права на выполнение для volume
+RUN chmod +x /src/*.sh || true
+
 ENTRYPOINT ["/src/entrypoint.bot.sh"]
