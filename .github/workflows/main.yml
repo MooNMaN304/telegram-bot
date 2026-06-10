@@ -2,19 +2,19 @@ name: CI-CD Pipeline
 
 on:
   push:
-    branches: [main, master]
+    branches: [master]
   pull_request:
-    branches: [main, master]
+    branches: [master]
 
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
-          python-version: "3.10"
+          python-version: "3.11"
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
@@ -25,42 +25,41 @@ jobs:
 
   deploy-frankfurt:
     needs: test
-    if: github.event_name == 'push'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
       - name: Deploy to Frankfurt
-        uses: appleboy/ssh-action@master
+        uses: appleboy/ssh-action@v1.0.0
         with:
           host: ${{ secrets.FRANKFURT_HOST }}
           username: ${{ secrets.FRANKFURT_USER }}
           key: ${{ secrets.FRANKFURT_SSH_KEY }}
           script: |
             cd /root/telegram-bot
-            git pull origin main
-            docker-compose -f docker-compose.frankfurt.yml up -d --build
-            docker-compose -f docker-compose.observability.yml up -d
+            git pull origin master
+            docker compose -f docker-compose.frankfurt.yml up -d --build
+            docker compose -f docker-compose.observability.yml up -d
 
   deploy-moscow:
     needs: test
-    if: github.event_name == 'push'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
       - name: Deploy to Moscow
-        uses: appleboy/ssh-action@master
+        uses: appleboy/ssh-action@v1.0.0
         with:
           host: ${{ secrets.MOSCOW_HOST }}
           username: ${{ secrets.MOSCOW_USER }}
           key: ${{ secrets.MOSCOW_SSH_KEY }}
           script: |
             cd /home/ubuntu/telegram-bot
-            git pull origin main
-            docker-compose -f docker-compose.moscow.yml up -d --build
+            git pull origin master
+            docker compose -f docker-compose.moscow.yml up -d --build
             docker stop promtail || true
             docker rm promtail || true
             docker run -d --name promtail \
               -v /var/lib/docker/containers:/var/lib/docker/containers:ro \
+              -v /var/run/docker.sock:/var/run/docker.sock \
               -v $(pwd)/promtail-config.moscow.yml:/etc/promtail/config.yml \
               --network host \
               grafana/promtail:2.9.1 -config.file=/etc/promtail/config.yml
