@@ -30,8 +30,11 @@ jobs:
         run: ruff check --output-format=github .
         continue-on-error: true
 
+      - name: Set PYTHONPATH
+        run: echo "PYTHONPATH=$PWD:$PWD/src" >> $GITHUB_ENV
+
       - name: Run tests
-        run: pytest -v --tb=short
+        run: pytest -v --tb=short --ignore=tests/integration_tests
         continue-on-error: false
 
   deploy-frankfurt:

@@ -52,7 +52,7 @@ def get_session_repository():
 
 def get_cinema_movie_repository():
     return CinemaMovieRepository(
-        session=session, 
+        session=session,
         cinema_movie_model=CinemaMovieModel,
         session_model=SessionModel,
         movie_model=MovieModel,

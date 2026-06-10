@@ -9,7 +9,7 @@ class CinemaMovieModel(Base):
 
     cinema_id = Column(Integer, ForeignKey("cinemas.id"), nullable=False)
     movie_id = Column(Integer, ForeignKey("movies.id"), nullable=False)
-    
+
     # Cinema-specific данные
     cinema_movie_id = Column(String(50), nullable=True)  # ID фильма в кинотеатре (напр. 24233 на Malibu)
     cinema_movie_url = Column(String(500), nullable=True)  # URL фильма на сайте кинотеатра

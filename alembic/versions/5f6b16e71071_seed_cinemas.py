@@ -33,16 +33,16 @@ def upgrade() -> None:
         sa.column('name', sa.String),
         sa.column('address', sa.String),
     )
-    
+
     data = [
         {'name': name, 'address': address}
         for name, address in CINEMAS_DATA
     ]
-    
+
     op.bulk_insert(cinemas_table, data)
 
 
 def downgrade() -> None:
     """Удалить добавленные кинотеатры."""
-    op.execute("DELETE FROM cinemas WHERE name IN (%s)" % 
+    op.execute("DELETE FROM cinemas WHERE name IN (%s)" %
                ', '.join([f"'{name}'" for name, _ in CINEMAS_DATA]))

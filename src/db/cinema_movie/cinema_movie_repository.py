@@ -7,10 +7,10 @@ from .cinema_movie_model import CinemaMovieModel
 
 class CinemaMovieRepository:
     """Репозиторий для работы с связями фильм-кинотеатр"""
-    
+
     def __init__(
-        self, 
-        session: Session, 
+        self,
+        session: Session,
         cinema_movie_model: type[CinemaMovieModel],
         session_model=None,  # Импортируется для JOIN операций
         movie_model=None,    # Импортируется для JOIN операций
