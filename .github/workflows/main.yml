@@ -58,6 +58,8 @@ jobs:
 
             # Pull latest code
             echo "[1/3] Pulling latest code..."
+            git reset --hard HEAD
+            git clean -fd
             git pull origin master
 
             # Build and restart bot
@@ -91,6 +93,8 @@ jobs:
 
             # Pull latest code
             echo "[1/3] Pulling latest code..."
+            git reset --hard HEAD
+            git clean -fd
             git pull origin master
 
             # Build and restart celery worker

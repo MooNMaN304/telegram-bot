@@ -76,11 +76,11 @@ class CinemaMovieRepository:
         """
         if target_date is None:
             target_date = date.today()
-        
+
         # Требуется session_model и movie_model для JOIN
         if not self.session_model or not self.movie_model:
             raise ValueError("session_model и movie_model должны быть переданы в конструктор")
-        
+
         return (
             self.db.query(self.movie_model)
             .join(self.cinema_movie_model, self.movie_model.id == self.cinema_movie_model.movie_id)
@@ -100,13 +100,13 @@ class CinemaMovieRepository:
         """
         if target_date is None:
             target_date = date.today()
-        
+
         # Требуется session_model и cinema_model для JOIN
         if not self.session_model:
             raise ValueError("session_model должна быть передана в конструктор")
-        
+
         from src.db.cinemas.cinema_model import CinemaModel
-        
+
         return (
             self.db.query(CinemaModel)
             .join(self.cinema_movie_model, CinemaModel.id == self.cinema_movie_model.cinema_id)
@@ -128,7 +128,7 @@ class CinemaMovieRepository:
     ) -> Optional[CinemaMovieModel]:
         """Обновить данные связи"""
         cinema_movie = self.get_by_cinema_and_movie(cinema_id, movie_id)
-        
+
         if cinema_movie:
             for key, value in data.items():
                 if hasattr(cinema_movie, key):
@@ -136,16 +136,16 @@ class CinemaMovieRepository:
             self.db.commit()
             self.db.refresh(cinema_movie)
             return cinema_movie
-        
+
         return None
 
     def delete(self, cinema_id: int, movie_id: int) -> bool:
         """Удалить связь"""
         cinema_movie = self.get_by_cinema_and_movie(cinema_id, movie_id)
-        
+
         if cinema_movie:
             self.db.delete(cinema_movie)
             self.db.commit()
             return True
-        
+
         return False

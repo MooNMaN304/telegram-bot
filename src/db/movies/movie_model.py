@@ -25,4 +25,3 @@ class MovieModel(Base):
         sessions_count = len(self.sessions) if self.sessions else 0
         cinemas_count = len(self.cinema_movies) if self.cinema_movies else 0
         return f"Фильм '{self.name}' (кинотеатров: {cinemas_count}, сеансов: {sessions_count})"
-    
