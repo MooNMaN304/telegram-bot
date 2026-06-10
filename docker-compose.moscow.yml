@@ -26,7 +26,7 @@ services:
       - .env
     environment:
       - PYTHONPATH=/src
-      # Redis находится во Франкфурте - адрес настраивается в .env через CELERY_BROKER_URL
+      - LOG_FORMAT=json
       - CELERY_BROKER_URL=${CELERY_BROKER_URL}
       - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND}
       - REMOTE_SELENIUM_URL=http://browserless:3000/webdriver

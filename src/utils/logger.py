@@ -9,6 +9,7 @@ import logging.config
 from pathlib import Path
 import codecs
 import json
+import os
 
 # Project root (two levels up from src/services/logger.py)
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -79,12 +80,16 @@ LOGGING_CONFIG = {
             "format": "%(asctime)s %(levelname)s [%(name)s] %(message)s",
             "datefmt": "%Y-%m-%d %H:%M:%S",
         },
+        "json": {
+            "()": "pythonjsonlogger.jsonlogger.JsonFormatter",
+            "format": "%(asctime)s %(levelname)s %(name)s %(message)s",
+        },
     },
     "handlers": {
         "console": {
             "class": "logging.StreamHandler",
             "level": "INFO",
-            "formatter": "default",
+            "formatter": "json" if os.getenv("LOG_FORMAT", "text").lower() == "json" else "default",
             "stream": "ext://sys.stdout",
         },
         "file": {
