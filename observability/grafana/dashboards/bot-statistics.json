@@ -1,0 +1,118 @@
+{
+  "title": "Telegram Bot Statistics",
+  "uid": "telegram-bot-stats",
+  "schemaVersion": 39,
+  "version": 1,
+  "panels": [
+    {
+      "id": 1,
+      "title": "Logs by Service",
+      "type": "logs",
+      "datasource": {
+        "type": "loki",
+        "uid": "P8E80F9AEF21F6940"
+      },
+      "targets": [
+        {
+          "expr": "{service_name=~\"telegram-bot|celery-worker\"} | json",
+          "refId": "A"
+        }
+      ],
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "id": 2,
+      "title": "Error Rate by Service",
+      "type": "stat",
+      "datasource": {
+        "type": "loki",
+        "uid": "P8E80F9AEF21F6940"
+      },
+      "targets": [
+        {
+          "expr": "sum(count_over_time({service_name=~\"telegram-bot|celery-worker\"} |= \"ERROR\" [$__range]))",
+          "refId": "A"
+        }
+      ],
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 0,
+        "y": 8
+      }
+    },
+    {
+      "id": 3,
+      "title": "Logs per Server Location",
+      "type": "barchart",
+      "datasource": {
+        "type": "loki",
+        "uid": "P8E80F9AEF21F6940"
+      },
+      "targets": [
+        {
+          "expr": "sum(count_over_time({server_location=~\"frankfurt|moscow\"} [$__range])) by (server_location)",
+          "refId": "A"
+        }
+      ],
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 4,
+        "y": 8
+      }
+    },
+    {
+      "id": 4,
+      "title": "User Actions Timeline",
+      "type": "timeline",
+      "datasource": {
+        "type": "loki",
+        "uid": "P8E80F9AEF21F6940"
+      },
+      "targets": [
+        {
+          "expr": "{service_name=\"telegram-bot\"} | json | message =~ \".*user.*|.*/start.*|.*films_today.*\"",
+          "refId": "A"
+        }
+      ],
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 16
+      }
+    },
+    {
+      "id": 5,
+      "title": "Parsing Jobs (Celery Worker) Status",
+      "type": "stat",
+      "datasource": {
+        "type": "loki",
+        "uid": "P8E80F9AEF21F6940"
+      },
+      "targets": [
+        {
+          "expr": "sum(count_over_time({service_name=\"celery-worker\"} |= \"parsing\" [$__range]))",
+          "refId": "A"
+        }
+      ],
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 8,
+        "y": 16
+      }
+    }
+  ],
+  "refresh": "30s",
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  }
+}

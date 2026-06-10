@@ -2,35 +2,44 @@ version: "3.8"
 
 services:
   loki:
-    image: grafana/loki:2.9.1
+    image: grafana/loki:2.9.2
     container_name: loki
     ports:
       - "3100:3100"
-    command: -config.file=/etc/loki/local-config.yaml
-    networks:
-      - observability
-    restart: unless-stopped
-
-  grafana:
-    image: grafana/grafana:10.1.5
-    container_name: grafana
-    ports:
-      - "3000:3000"
-    environment:
-      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+    command: -config.file=/etc/loki/loki-config.yaml
     volumes:
-      - grafana-storage:/var/lib/grafana
+      - ./observability/loki/loki-config.yaml:/etc/loki/loki-config.yaml
+      - loki_data:/loki
     networks:
       - observability
     restart: unless-stopped
 
   promtail:
-    image: grafana/promtail:2.9.1
+    image: grafana/promtail:2.9.2
     container_name: promtail
     volumes:
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
-      - ./promtail-config.yml:/etc/promtail/config.yml
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./observability/promtail/promtail-frankfurt.yaml:/etc/promtail/config.yml
     command: -config.file=/etc/promtail/config.yml
+    networks:
+      - observability
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:10.2.3
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Viewer
+      - GF_INSTALL_PLUGINS=grafana-piechart-panel
+    volumes:
+      - grafana_storage:/var/lib/grafana
+      - ./observability/grafana/datasources:/etc/grafana/provisioning/datasources
+      - ./observability/grafana/dashboards:/etc/grafana/provisioning/dashboards
     networks:
       - observability
     restart: unless-stopped
@@ -40,4 +49,5 @@ networks:
     driver: bridge
 
 volumes:
-  grafana-storage:
+  loki_data:
+  grafana_storage:

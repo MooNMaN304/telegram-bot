@@ -2,6 +2,7 @@
 
 Uses logging.dictConfig() from the standard library to configure console
 and rotating file handlers.
+Supports structured JSON logging for centralized log collection with Loki.
 """
 
 import logging
@@ -10,10 +11,15 @@ from pathlib import Path
 import codecs
 import json
 import os
+from contextvars import ContextVar
 
 # Project root (two levels up from src/services/logger.py)
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 LOG_FILE = PROJECT_ROOT / "app.log"
+
+# Context variables for service identification
+service_name_ctx: ContextVar[str] = ContextVar("service_name", default="unknown")
+server_location_ctx: ContextVar[str] = ContextVar("server_location", default="unknown")
 
 
 class UnicodeDecodeHandler(logging.Handler):
@@ -77,12 +83,12 @@ LOGGING_CONFIG = {
     "disable_existing_loggers": False,
     "formatters": {
         "default": {
-            "format": "%(asctime)s %(levelname)s [%(name)s] %(message)s",
+            "format": "%(asctime)s %(levelname)s [%(name)s] [%(service_name)s@%(server_location)s] %(message)s",
             "datefmt": "%Y-%m-%d %H:%M:%S",
         },
         "json": {
             "()": "pythonjsonlogger.jsonlogger.JsonFormatter",
-            "format": "%(asctime)s %(levelname)s %(name)s %(message)s",
+            "format": "%(asctime)s %(levelname)s %(name)s %(message)s %(service_name)s %(server_location)s",
         },
     },
     "handlers": {
@@ -140,14 +146,22 @@ LOGGING_CONFIG = {
 }
 
 
-def setup_logging(config: dict = None) -> None:
+def setup_logging(config: dict = None, service_name: str = None, server_location: str = None) -> None:
     """Configure logging using dictConfig from the standard library.
 
     Args:
         config: Optional logging configuration dict. If None, uses LOGGING_CONFIG.
+        service_name: Name of the service (e.g., 'telegram-bot', 'celery-worker')
+        server_location: Server location (e.g., 'frankfurt', 'moscow')
     """
     if config is None:
         config = LOGGING_CONFIG
+
+    # Set context variables if provided
+    if service_name:
+        service_name_ctx.set(service_name)
+    if server_location:
+        server_location_ctx.set(server_location)
 
     # Ensure log file directory exists
     try:
@@ -167,16 +181,37 @@ def setup_logging(config: dict = None) -> None:
         root_logger.addHandler(unicode_handler)
 
 
+def set_service_context(service_name: str, server_location: str) -> None:
+    """Set service name and server location for structured logging.
+
+    Args:
+        service_name: Name of the service (e.g., 'telegram-bot', 'celery-worker')
+        server_location: Server location (e.g., 'frankfurt', 'moscow')
+    """
+    service_name_ctx.set(service_name)
+    server_location_ctx.set(server_location)
+
+
 def get_logger(name: str = None) -> logging.Logger:
-    """Get a logger instance.
+    """Get a logger instance with service context.
 
     Args:
         name: Logger name (typically __name__). If None, returns root logger.
 
     Returns:
-        logging.Logger instance
+        logging.Logger instance with added context filter
     """
-    return logging.getLogger(name)
+    logger = logging.getLogger(name)
+
+    # Add filter to inject service context into log records
+    class ServiceContextFilter(logging.Filter):
+        def filter(self, record):
+            record.service_name = service_name_ctx.get()
+            record.server_location = server_location_ctx.get()
+            return True
+
+    logger.addFilter(ServiceContextFilter())
+    return logger
 
 
-__all__ = ["setup_logging", "get_logger", "LOGGING_CONFIG"]
+__all__ = ["setup_logging", "get_logger", "set_service_context", "LOGGING_CONFIG"]

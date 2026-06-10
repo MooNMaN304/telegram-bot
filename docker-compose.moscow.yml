@@ -30,6 +30,17 @@ services:
       - CELERY_BROKER_URL=${CELERY_BROKER_URL}
       - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND}
       - REMOTE_SELENIUM_URL=http://browserless:3000/webdriver
+      - SERVICE_NAME=celery-worker
+      - SERVER_LOCATION=moscow
+    labels:
+      logging: "promtail"
+      service: "celery-worker"
+      server: "moscow"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     command: celery -A src.parsing_movie.celery:celery_app worker --loglevel=info --concurrency=1
     volumes:
       - .:/src

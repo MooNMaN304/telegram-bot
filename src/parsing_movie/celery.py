@@ -1,4 +1,5 @@
 import logging
+import os
 from celery import Celery, shared_task
 
 from selenium import webdriver
@@ -7,8 +8,15 @@ import chromedriver_autoinstaller
 
 from src.application.value import get_malibu_controller, build_kinomax_controller
 from src.settings import settings
+from src.utils.logger import setup_logging, get_logger, set_service_context
 
-logger = logging.getLogger(__name__)
+# Настройка логирования для Celery worker
+service_name = os.getenv("SERVICE_NAME", "celery-worker")
+server_location = os.getenv("SERVER_LOCATION", "unknown")
+setup_logging(service_name=service_name, server_location=server_location)
+set_service_context(service_name, server_location)
+
+logger = get_logger(__name__)
 
 
 celery_app = Celery(
@@ -16,7 +24,7 @@ celery_app = Celery(
     broker=settings.CELERY_BROKER_URL,
     backend=settings.CELERY_RESULT_BACKEND,
 )
-#
+
 def celery_configure():
     celery_app.conf.update(
         task_serializer="json",
@@ -25,6 +33,7 @@ def celery_configure():
         timezone="Europe/Moscow",
         enable_utc=True,
     )
+    logger.info(f"Celery worker configured on {server_location}")
 
 
 def _resolve_gigachat_credentials() -> str:
