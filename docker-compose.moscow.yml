@@ -27,6 +27,8 @@ services:
     environment:
       - PYTHONPATH=/src
       - LOG_FORMAT=json
+      - DATABASE_URL=${DATABASE_URL}
+      - ADMIN_TELEGRAM_ID=${ADMIN_TELEGRAM_ID}
       - CELERY_BROKER_URL=${CELERY_BROKER_URL}
       - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND}
       - REMOTE_SELENIUM_URL=http://browserless:3000/webdriver
