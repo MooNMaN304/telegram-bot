@@ -1,17 +1,17 @@
-# Этот файл заменен на разделенные конфигурации для разных серверов:
-# - docker-compose.frankfurt.yml (Франкфурт): postgres, redis, bot
-# - docker-compose.moscow.yml (Москва): browserless, celery_worker
-#
-# Для локальной разработки (все сервисы на одной машине) используйте:
-# docker compose -f docker-compose.local.yml up -d
-#
-# Для продакшена на разных серверах см. инструкции в DEPLOYMENT.md
+# # Этот файл заменен на разделенные конфигурации для разных серверов:
+# # - docker-compose.frankfurt.yml (Франкфурт): postgres, redis, bot
+# # - docker-compose.moscow.yml (Москва): browserless, celery_worker
+# #
+# # Для локальной разработки (все сервисы на одной машине) используйте:
+# # docker compose -f docker-compose.local.yml up -d
+# #
+# # Для продакшена на разных серверах см. инструкции в DEPLOYMENT.md
 
-version: '3.8'
+# version: '3.8'
 
-services:
-  # Пустой файл - используйте docker-compose.frankfurt.yml и docker-compose.moscow.yml
-  placeholder:
-    image: hello-world
-    deploy:
-      replicas: 0
+# services:
+#   # Пустой файл - используйте docker-compose.frankfurt.yml и docker-compose.moscow.yml
+#   placeholder:
+#     image: hello-world
+#     deploy:
+#       replicas: 0
