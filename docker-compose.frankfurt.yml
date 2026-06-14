@@ -28,6 +28,10 @@ services:
   redis:
     image: redis:7-alpine
     container_name: telegram_bot_redis
+    # === ДОБАВЬ ЭТИ ДВЕ СТРОКИ ===
+    ports:
+      - "6379:6379"
+    # =============================
     command: redis-server --requirepass Kolbasko753
     healthcheck:
       test: [ "CMD", "redis-cli", "-a", "Kolbasko753", "ping" ]

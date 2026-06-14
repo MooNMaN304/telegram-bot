@@ -53,7 +53,8 @@
       "datasource": {
         "type": "loki",
         "uid": "P8E80F9AEF21F6940"
-      },
+      },          "expr": "sum(count_over_time({server_location=~\"frankfurt|moscow\"} [$__range])) by (server_location)",
+
       "targets": [
         {
           "expr": "sum(count_over_time({server_location=~\"frankfurt|moscow\"} [$__range])) by (server_location)",
