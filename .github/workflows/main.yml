@@ -87,6 +87,11 @@ jobs:
 
       - name: Deploy to Moscow server
         uses: appleboy/ssh-action@v1.0.0
+        # === ЧТО ИСПРАВЛЕНО 1: Передаем секреты из GitHub в окружение раннера ===
+        env:
+          MOSCOW_DATABASE_URL: ${{ secrets.MOSCOW_DATABASE_URL }}
+          ADMIN_TELEGRAM_ID: ${{ secrets.ADMIN_TELEGRAM_ID }}
+        # =====================================================================
         with:
           host: ${{ secrets.MOSCOW_HOST }}
           username: ${{ secrets.MOSCOW_USER }}
@@ -103,13 +108,18 @@ jobs:
             git clean -fd
             git pull origin master
 
-            # Setup environment variables из GitHub Secrets
+            # Setup environment variables
             echo "[2/4] Setting up environment variables..."
-            # Сохраняем существующий .env
-            cp .env .env.backup 2>/dev/null || true
-            # Добавляем обязательные переменные (не перезаписывая существующие)
-            grep -q "DATABASE_URL" .env 2>/dev/null || echo "DATABASE_URL=${MOSCOW_DATABASE_URL}" >> .env
-            grep -q "ADMIN_TELEGRAM_ID" .env 2>/dev/null || echo "ADMIN_TELEGRAM_ID=${ADMIN_TELEGRAM_ID}" >> .env
+            
+            # === ЧТО ИСПРАВЛЕНО 2: Безопасно обновляем файл, не стирая API-ключи ===
+            # Удаляем старые строки (если они были), чтобы не плодить дубликаты
+            sed -i '/DATABASE_URL/d' .env 2>/dev/null || true
+            sed -i '/ADMIN_TELEGRAM_ID/d' .env 2>/dev/null || true
+            
+            # Дописываем новые значения строго в конец файла через >>
+            echo "DATABASE_URL=${MOSCOW_DATABASE_URL}" >> .env
+            echo "ADMIN_TELEGRAM_ID=${ADMIN_TELEGRAM_ID}" >> .env
+            # =====================================================================
 
             # Build and restart celery worker
             echo "[3/4] Building and restarting celery worker..."
