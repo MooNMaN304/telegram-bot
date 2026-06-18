@@ -24,7 +24,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install pytest pytest-cov ruff
+          pip install pytest pytest-cov ruff pyyaml
 
       - name: Lint check
         run: ruff check --output-format=github .
@@ -110,12 +110,12 @@ jobs:
 
             # Setup environment variables
             echo "[2/4] Setting up environment variables..."
-            
+
             # === ЧТО ИСПРАВЛЕНО 2: Безопасно обновляем файл, не стирая API-ключи ===
             # Удаляем старые строки (если они были), чтобы не плодить дубликаты
             sed -i '/DATABASE_URL/d' .env 2>/dev/null || true
             sed -i '/ADMIN_TELEGRAM_ID/d' .env 2>/dev/null || true
-            
+
             # Дописываем новые значения строго в конец файла через >>
             echo "DATABASE_URL=${MOSCOW_DATABASE_URL}" >> .env
             echo "ADMIN_TELEGRAM_ID=${ADMIN_TELEGRAM_ID}" >> .env

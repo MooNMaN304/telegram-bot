@@ -25,6 +25,35 @@ celery_app = Celery(
     backend=settings.CELERY_RESULT_BACKEND,
 )
 
+def check_connections():
+    """Проверка подключений к БД и Redis перед запуском задач."""
+    import socket
+    from urllib.parse import urlparse
+    
+    # Проверка Redis (Broker)
+    try:
+        url = urlparse(settings.CELERY_BROKER_URL)
+        host = url.hostname
+        port = url.port or 6379
+        logger.info(f"Проверка подключения к Redis: {host}:{port}")
+        with socket.create_connection((host, port), timeout=5):
+            logger.info("✅ Подключение к Redis успешно")
+    except Exception as e:
+        logger.error(f"❌ Ошибка подключения к Redis ({settings.CELERY_BROKER_URL}): {e}")
+
+    # Проверка БД
+    try:
+        # Извлекаем хост и порт из DATABASE_URL (asyncpg://user:pass@host:port/db)
+        db_url = settings.DATABASE_URL.replace("postgresql+asyncpg://", "http://")
+        url = urlparse(db_url)
+        host = url.hostname
+        port = url.port or 5432
+        logger.info(f"Проверка подключения к БД: {host}:{port}")
+        with socket.create_connection((host, port), timeout=5):
+            logger.info("✅ Подключение к БД успешно")
+    except Exception as e:
+        logger.error(f"❌ Ошибка подключения к БД ({host}:{port}): {e}")
+
 def celery_configure():
     celery_app.conf.update(
         task_serializer="json",
@@ -34,6 +63,7 @@ def celery_configure():
         enable_utc=True,
     )
     logger.info(f"Celery worker configured on {server_location}")
+    check_connections()
 
 
 def _resolve_gigachat_credentials() -> str:

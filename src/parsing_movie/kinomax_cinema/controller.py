@@ -102,16 +102,19 @@ class KinomaxController(AbstractController):
         cinema_id = self._get_kinomax_cinema_id()
 
         # 1️⃣ Открываем сайт
+        logger.info(f"Переход на URL: {kinomax_settings.KINOMAX_URL}")
         self.main_parser.navigate(kinomax_settings.KINOMAX_URL)
 
         # 2️⃣ Выбираем город (1 раз)
+        logger.info(f"Выбор города: {city}")
         self._select_city_once(city)
 
         # 3️⃣ Получаем фильмы
+        logger.info("Сбор списка фильмов с главной страницы...")
         films = self.main_parser.parse_all_movies()
 
         if not films:
-            logger.warning("Фильмы не найдены")
+            logger.warning(f"Фильмы не найдены для города {city}. Проверьте селекторы или доступность сайта.")
             return
 
         logger.info(f"Найдено фильмов: {len(films)}")
@@ -155,13 +158,15 @@ class KinomaxController(AbstractController):
         logger.info(f"[{index}/{total}] Обработка: {title}")
 
         # 1️⃣ Получаем детали фильма
+        logger.info(f"[{index}/{total}] Запрос деталей фильма '{title}' через API/Парсер...")
         details = self.movie_detail_parser.parse_by_title(title)
 
         if not details:
-            logger.warning(f"Детали не получены → {title}")
+            logger.warning(f"[{index}/{total}] ❌ Детали не получены для '{title}'. Пропуск.")
             return
 
         kinomax_id = extract_kinomax_id(url)
+        logger.info(f"[{index}/{total}] Kinomax ID: {kinomax_id}, URL: {url}")
 
         # 2️⃣ Сохраняем / получаем фильм
         movie = self.movie_repo.get_or_create(

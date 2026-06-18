@@ -45,11 +45,12 @@ class MalibuController(AbstractController):
     def run(self):
         malibu_cinema_id = self.get_malibu_cinema_id()
 
-        logger.info("Запуск парсера фильмов Малибу...")
+        logger.info("=== Запуск парсера фильмов МАЛИБУ ===")
+        logger.info(f"Переход на URL: {malibu_settings.MALIBU_URL}")
         films = self.main_parser.parse_all_movies()
 
         if not films:
-            logger.warning("Парсер не вернул фильмов.")
+            logger.warning("Парсер не вернул фильмов. Проверьте селекторы или доступность сайта Малибу.")
             return
 
         logger.info(f"Найдено фильмов: {len(films)}")
@@ -75,9 +76,10 @@ class MalibuController(AbstractController):
             success_movies += 1
 
             # 1️⃣ Детали фильма (общие)
+            logger.info(f"[{idx}/{len(films)}] Запрос деталей фильма '{title}' через API/Парсер...")
             movie_details = self.movie_detail_parser.parse_by_title(title)
             if not movie_details:
-                logger.warning(f"✗ Не удалось получить детали '{title}'")
+                logger.warning(f"[{idx}/{len(films)}] ✗ Не удалось получить детали '{title}'. Пропуск.")
                 continue
 
             # 2️⃣ Malibu-specific данные
@@ -167,11 +169,15 @@ class MalibuController(AbstractController):
         sessions_saved = 0
 
         for url in urls:
+            logger.info(f"  Парсинг сеансов по URL: {url}")
             sessions = self.session_parser.parse_sessions(
                 url=url,
                 movie_id=cinema_movie.movie_id,
                 cinema_id=cinema_id,
             )
+
+            if not sessions:
+                logger.debug(f"    Сеансы не найдены по URL: {url}")
 
             for session in sessions:
                 self.session_repo.get_or_create(
