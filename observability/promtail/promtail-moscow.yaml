@@ -22,7 +22,11 @@ scrape_configs:
       - source_labels: ["__meta_docker_container_label_service"]
         regex: "(.+)"
         target_label: "service"
+      - source_labels: ["__meta_docker_container_label_server"]
+        regex: "(.+)"
+        target_label: "server_location"
     pipeline_stages:
+      # Попытка распарсить JSON (наши кастомные логи)
       - json:
           expressions:
             level: level

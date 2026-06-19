@@ -54,14 +54,16 @@ def check_connections():
     except Exception as e:
         logger.error(f"❌ Ошибка подключения к БД ({host}:{port}): {e}")
 
+celery_app.conf.update(
+    task_serializer="json",
+    result_serializer="json",
+    accept_content=["json"],
+    timezone="Europe/Moscow",
+    enable_utc=True,
+    worker_hijack_root_logger=False,
+)
+
 def celery_configure():
-    celery_app.conf.update(
-        task_serializer="json",
-        result_serializer="json",
-        accept_content=["json"],
-        timezone="Europe/Moscow",
-        enable_utc=True,
-    )
     logger.info(f"Celery worker configured on {server_location}")
     check_connections()
 
