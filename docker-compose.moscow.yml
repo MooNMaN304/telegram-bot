@@ -50,22 +50,6 @@ services:
       - moscow_network
     restart: unless-stopped
 
-  promtail:
-    image: grafana/promtail:2.9.2
-    container_name: promtail-moscow
-    volumes:
-      - /var/lib/docker/containers:/var/lib/docker/containers:ro
-      - /var/run/docker.sock:/var/run/docker.sock
-      - ./observability/promtail/promtail-moscow.yaml:/etc/promtail/config.yml
-    command: -config.file=/etc/promtail/config.yml
-    labels:
-      logging: "promtail"
-      service: "promtail"
-      server: "moscow"
-    networks:
-      - moscow_network
-    restart: unless-stopped
-
 networks:
   moscow_network:
     driver: bridge
