@@ -1,8 +1,8 @@
-import logging
 from src.db.movies.movie_schema import BaseMovieSchema
 from src.utils.kino_api.client import KinoAPIClient
+from src.utils.logger import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class MovieDetailParser:

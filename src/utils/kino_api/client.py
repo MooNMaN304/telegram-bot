@@ -3,10 +3,11 @@ from src.out.openapi_client.api.films_api import FilmsApi
 from src.out.openapi_client.configuration import Configuration
 from src.settings import settings
 
-import logging
 import time
 
-logger = logging.getLogger(__name__)
+from src.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 class KinoAPIClient:

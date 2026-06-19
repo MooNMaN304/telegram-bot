@@ -1,3 +1,10 @@
+"""Factory functions for creating repositories, parsers, and controllers.
+
+IMPORTANT: Each function creates its own DB session via get_session().
+Previously, a module-level `session = get_session()` was used, which caused
+stale sessions in long-running Celery workers. Now every call gets a fresh session.
+"""
+
 from src.db.database import get_session
 
 from src.db.movies.movie_repository import MovieRepository
@@ -23,8 +30,6 @@ from src.parsing_movie.malibu_cinema.malibu_settings import malibu_settings
 
 from src.settings import settings
 
-session = get_session()
-
 
 # --- Вспомогательные функции ---
 def _resolve_gigachat_credentials():
@@ -34,6 +39,7 @@ def _resolve_gigachat_credentials():
 
 # --- Репозитории ---
 def get_movie_repository():
+    session = get_session()
     return MovieRepository(
         session=session,
         movie_model=MovieModel,
@@ -43,14 +49,17 @@ def get_movie_repository():
 
 
 def get_cinema_repository():
+    session = get_session()
     return CinemaRepository(session=session, cinema_model=CinemaModel)
 
 
 def get_session_repository():
+    session = get_session()
     return SessionRepository(session=session, session_model=SessionModel)
 
 
 def get_cinema_movie_repository():
+    session = get_session()
     return CinemaMovieRepository(
         session=session,
         cinema_movie_model=CinemaMovieModel,
@@ -60,6 +69,7 @@ def get_cinema_movie_repository():
 
 
 def get_user_repository():
+    session = get_session()
     return UserRepository(session=session, user_model=UserModel)
 
 

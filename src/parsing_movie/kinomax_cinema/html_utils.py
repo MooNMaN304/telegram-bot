@@ -3,11 +3,11 @@
 Чистые функции без Selenium — легко тестировать через lxml.
 """
 from lxml import html
-import logging
 
 from src.parsing_movie.kinomax_cinema.kinomax_settings import kinomax_settings
+from src.utils.logger import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 def has_empty_schedule_message(page_html: str) -> bool:

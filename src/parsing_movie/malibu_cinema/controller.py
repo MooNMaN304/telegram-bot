@@ -1,4 +1,3 @@
-import logging
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -13,8 +12,9 @@ from src.db.cinema_movie.cinema_movie_model import CinemaMovieModel
 from src.parsing_movie.abstract.controller import AbstractController
 
 from src.parsing_movie.malibu_cinema.malibu_settings import malibu_settings
+from src.utils.logger import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class MalibuController(AbstractController):

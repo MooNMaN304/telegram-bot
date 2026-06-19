@@ -8,7 +8,6 @@ Supports structured JSON logging for centralized log collection with Loki.
 import logging
 import logging.config
 from pathlib import Path
-import codecs
 import json
 import os
 from contextvars import ContextVar
@@ -22,59 +21,51 @@ service_name_ctx: ContextVar[str] = ContextVar("service_name", default="unknown"
 server_location_ctx: ContextVar[str] = ContextVar("server_location", default="unknown")
 
 
-class UnicodeDecodeHandler(logging.Handler):
-    """Handler that decodes Unicode escape sequences in log messages."""
+class ServiceContextFilter(logging.Filter):
+    """Filter that injects service_name and server_location into log records."""
+
+    def filter(self, record):
+        record.service_name = service_name_ctx.get()
+        record.server_location = server_location_ctx.get()
+        return True
+
+
+class SafeUnicodeDecodeHandler(logging.Handler):
+    """Handler that safely passes records to the target handler.
+
+    Previously, UnicodeDecodeHandler tried to decode messages with
+    codecs.decode(msg, 'unicode_escape') which BROKE Russian text
+    and also did not wrap target_handler.emit() in try/except,
+    causing all logs to be lost when the formatter raised an error.
+    
+    This new handler only ensures the target handler never crashes the process.
+    """
 
     def __init__(self, target_handler):
         super().__init__()
         self.target_handler = target_handler
 
     def emit(self, record):
-        """Transform Unicode escapes and pass to target handler."""
+        """Pass record to target handler, never crash."""
         try:
-            # Decode Unicode escape sequences in the message
-            if isinstance(record.msg, str):
-                # Try to parse as JSON first
-                try:
-                    # If it's JSON, parse and re-serialize with ensure_ascii=False
-                    if record.msg.strip().startswith(("{", "[")):
-                        parsed = json.loads(record.msg)
-                        record.msg = json.dumps(parsed, ensure_ascii=False, indent=2)
-                except (json.JSONDecodeError, ValueError):
-                    # If not JSON, just decode unicode escapes
-                    try:
-                        record.msg = codecs.decode(record.msg, "unicode_escape")
-                    except Exception:
-                        pass
-
-            # Also decode args if they contain Unicode escapes
-            if record.args:
-                decoded_args = []
-                for arg in record.args if isinstance(record.args, tuple) else [record.args]:
-                    if isinstance(arg, str):
-                        try:
-                            if arg.strip().startswith(("{", "[")):
-                                parsed = json.loads(arg)
-                                decoded_args.append(
-                                    json.dumps(parsed, ensure_ascii=False, indent=2)
-                                )
-                            else:
-                                decoded_args.append(codecs.decode(arg, "unicode_escape"))
-                        except Exception:
-                            decoded_args.append(arg)
-                    else:
-                        decoded_args.append(arg)
-                record.args = (
-                    tuple(decoded_args) if isinstance(record.args, tuple) else decoded_args[0]
-                )
+            self.target_handler.emit(record)
         except Exception:
-            pass  # If decoding fails, use original message
-
-        self.target_handler.emit(record)
+            # Last resort: write to stderr so logs are never silently lost
+            try:
+                import sys
+                msg = f"[LOGGING ERROR] Failed to emit record: {record.getMessage()}\n"
+                sys.stderr.write(msg)
+                sys.stderr.flush()
+            except Exception:
+                pass
 
     def setFormatter(self, fmt):
         """Pass formatter to target handler."""
         self.target_handler.setFormatter(fmt)
+
+    def setLevel(self, level):
+        """Pass level to target handler."""
+        self.target_handler.setLevel(level)
 
 
 # Standard logging configuration dictionary
@@ -88,7 +79,12 @@ LOGGING_CONFIG = {
         },
         "json": {
             "()": "pythonjsonlogger.jsonlogger.JsonFormatter",
-            "format": "%(asctime)s %(levelname)s %(name)s %(message)s %(service_name)s %(server_location)s",
+            "format": "%(asctime)s %(levelname)s %(name)s %(service_name)s %(server_location)s %(message)s",
+        },
+    },
+    "filters": {
+        "service_context": {
+            "()": "src.utils.logger.ServiceContextFilter",
         },
     },
     "handlers": {
@@ -97,6 +93,7 @@ LOGGING_CONFIG = {
             "level": "INFO",
             "formatter": "json" if os.getenv("LOG_FORMAT", "text").lower() == "json" else "default",
             "stream": "ext://sys.stdout",
+            "filters": ["service_context"],
         },
         "file": {
             "class": "logging.handlers.RotatingFileHandler",
@@ -106,6 +103,7 @@ LOGGING_CONFIG = {
             "maxBytes": 10485760,  # 10MB
             "backupCount": 5,
             "encoding": "utf-8",
+            "filters": ["service_context"],
         },
     },
     "root": {
@@ -171,14 +169,22 @@ def setup_logging(config: dict = None, service_name: str = None, server_location
 
     logging.config.dictConfig(config)
 
-    # Wrap handlers with Unicode decoder
+    # Wrap handlers with safe handler that never crashes
     root_logger = logging.getLogger()
     for handler in root_logger.handlers[:]:
-        unicode_handler = UnicodeDecodeHandler(handler)
-        unicode_handler.setLevel(handler.level)
-        unicode_handler.setFormatter(handler.formatter)
+        safe_handler = SafeUnicodeDecodeHandler(handler)
+        safe_handler.setLevel(handler.level)
+        safe_handler.setFormatter(handler.formatter)
         root_logger.removeHandler(handler)
-        root_logger.addHandler(unicode_handler)
+        root_logger.addHandler(safe_handler)
+
+    logger = get_logger(__name__)
+    logger.info(
+        "Logging configured: service=%s location=%s format=%s",
+        service_name or "unknown",
+        server_location or "unknown",
+        os.getenv("LOG_FORMAT", "text"),
+    )
 
 
 def set_service_context(service_name: str, server_location: str) -> None:
@@ -203,14 +209,14 @@ def get_logger(name: str = None) -> logging.Logger:
     """
     logger = logging.getLogger(name)
 
-    # Add filter to inject service context into log records
-    class ServiceContextFilter(logging.Filter):
-        def filter(self, record):
-            record.service_name = service_name_ctx.get()
-            record.server_location = server_location_ctx.get()
-            return True
+    # Add filter to inject service context into log records.
+    # The filter is idempotent — adding it multiple times is safe.
+    has_filter = any(
+        isinstance(f, ServiceContextFilter) for f in logger.filters
+    )
+    if not has_filter:
+        logger.addFilter(ServiceContextFilter())
 
-    logger.addFilter(ServiceContextFilter())
     return logger
 
 

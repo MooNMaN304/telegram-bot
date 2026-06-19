@@ -1,10 +1,10 @@
-import logging
 from selenium.webdriver.common.by import By
 from src.base.base_parser import BaseParser
 from src.parsing_movie.malibu_cinema.malibu_settings import malibu_settings
 from src.parsing_movie.malibu_cinema.html_utils import extract_release_cards
+from src.utils.logger import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class MalibuMainPageParser(BaseParser):

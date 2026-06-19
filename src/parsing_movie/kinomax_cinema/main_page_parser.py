@@ -4,8 +4,9 @@ from selenium.webdriver.common.by import By
 from src.base.base_parser import BaseParser
 from src.parsing_movie.kinomax_cinema.html_utils import extract_films_from_main
 from src.parsing_movie.kinomax_cinema.kinomax_settings import kinomax_settings
+from src.utils.logger import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class KinomaxMainPageParser(BaseParser):

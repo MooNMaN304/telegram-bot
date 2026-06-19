@@ -15,9 +15,10 @@ from src.parsing_movie.kinomax_cinema.kinomax_settings import (
     kinomax_settings,
 )
 from src.db.cinema_movie.cinema_movie_repository import CinemaMovieRepository
+from src.utils.logger import get_logger
 
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class KinomaxController(AbstractController):

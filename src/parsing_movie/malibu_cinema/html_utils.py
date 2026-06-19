@@ -3,13 +3,13 @@
 Функции в этом модуле работают с HTML strings без использования Selenium.
 """
 
-import logging
 from lxml import html
 from typing import List, Set
 from urllib.parse import urlparse
 from src.parsing_movie.malibu_cinema.malibu_settings import malibu_settings
+from src.utils.logger import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 def extract_release_links(page_html: str) -> List[str]:

@@ -3,17 +3,26 @@
 ### Добавлено логирование использования токенов и улучшена обработка ошибок с несколькими попытками.
 
 import json
-import logging
 from typing import List, Type
 
 from gigachat import GigaChat
 from gigachat.exceptions import ResponseError
 from pydantic import ValidationError, BaseModel
 
-logger = logging.getLogger(__name__)
+from src.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 class GigaChatScheduleParser:
+    """Парсер расписаний через GigaChat.
+    
+    Клиент GigaChat создаётся ЛЕНИВО при первом вызове parse_cinema_schedule(),
+    а не в __init__. Это критично для Celery worker — GigaChat() выполняет
+    HTTP-аутентификацию при создании, и если API недоступен, это блокирует
+    на ~10 минут.
+    """
+
     def __init__(
         self,
         credentials: str,
@@ -23,11 +32,12 @@ class GigaChatScheduleParser:
         temperature: float = 0.2,
         verify_ssl: bool = False,
     ):
-        self.giga = GigaChat(
-            credentials=credentials,
-            verify_ssl_certs=verify_ssl,
-            model=model,
-        )
+        # Сохраняем параметры, но НЕ создаём клиент GigaChat здесь
+        self._credentials = credentials
+        self._model = model
+        self._verify_ssl = verify_ssl
+        self._giga = None  # Lazy initialization
+
         self.response_schema = response_schema
         self.max_retries = max_retries
         self.temperature = temperature
@@ -48,6 +58,19 @@ class GigaChatScheduleParser:
             "HTML расписания:\n\n{html_content}\n\n"
             "Извлеки сеансы."
         )
+
+    @property
+    def giga(self):
+        """Ленивая инициализация клиента GigaChat."""
+        if self._giga is None:
+            logger.info("Инициализация клиента GigaChat (первый вызов)...")
+            self._giga = GigaChat(
+                credentials=self._credentials,
+                verify_ssl_certs=self._verify_ssl,
+                model=self._model,
+            )
+            logger.info("Клиент GigaChat инициализирован")
+        return self._giga
 
     # ==========================================================
     # UTILS

@@ -1,4 +1,3 @@
-import logging
 from datetime import datetime, timedelta
 from typing import List
 
@@ -7,8 +6,9 @@ from src.parsing_movie.kinomax_cinema.kinomax_settings import kinomax_settings
 from src.parsing_movie.kinomax_cinema.html_utils import extract_order_links_html
 from src.utils.gigachat_request import GigaChatScheduleParser
 from src.db.sessions.session_schema import SessionSchema
+from src.utils.logger import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class KinomaxSessionParser(BaseParser):

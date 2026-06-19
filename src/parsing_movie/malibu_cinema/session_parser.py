@@ -1,4 +1,3 @@
-import logging
 from datetime import datetime, timedelta
 
 from selenium.webdriver.common.by import By
@@ -7,8 +6,9 @@ from src.base.base_parser import BaseParser
 from src.parsing_movie.malibu_cinema.malibu_settings import malibu_settings
 from src.parsing_movie.malibu_cinema.session_extractor import MalibuSessionExtractor
 from src.db.sessions.session_schema import SessionSchema
+from src.utils.logger import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class MalibuSessionParser(BaseParser):
