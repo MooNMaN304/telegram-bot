@@ -1,18 +1,33 @@
+"""Celery configuration and tasks for movie parsers.
+
+This module is imported both by:
+1. The bot (via admin_commands.py) — should NOT call setup_logging()
+2. The celery worker (via celery command) — SHOULD call setup_logging()
+"""
 import time
 import os
+import sys
 from celery import Celery, shared_task
 
 from src.application.value import get_malibu_controller, build_kinomax_controller
 from src.settings import settings
 from src.utils.logger import setup_logging, get_logger, set_service_context
 
-# Настройка логирования для Celery worker
-service_name = os.getenv("SERVICE_NAME", "celery-worker")
-server_location = os.getenv("SERVER_LOCATION", "unknown")
-setup_logging(service_name=service_name, server_location=server_location)
-set_service_context(service_name, server_location)
+# Определяем, запущены ли мы как celery worker или как бот
+_is_celery_worker = 'worker' in sys.argv or os.getenv('CELERY_WORKER_MODE', '') == '1'
+
+if _is_celery_worker:
+    # Настройка логирования ТОЛЬКО для Celery worker
+    _service_name = os.getenv("SERVICE_NAME", "celery-worker")
+    _server_location = os.getenv("SERVER_LOCATION", "unknown")
+    setup_logging(service_name=_service_name, server_location=_server_location)
+    set_service_context(_service_name, _server_location)
 
 logger = get_logger(__name__)
+
+# service_name / server_location для use в celery_configure()
+_service_name = os.getenv("SERVICE_NAME", "celery-worker")
+_server_location = os.getenv("SERVER_LOCATION", "unknown")
 
 
 celery_app = Celery(
@@ -71,7 +86,7 @@ celery_app.conf.update(
 )
 
 def celery_configure():
-    logger.info("Celery worker configured on %s", server_location)
+    logger.info("Celery worker configured on %s", _server_location)
     check_connections()
 
 

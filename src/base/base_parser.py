@@ -49,12 +49,36 @@ class BaseParser:
             options.add_argument("--disable-dev-shm-usage")
             options.add_argument("--disable-gpu")
 
+            # ============================================================
+            # Anti-detection: маскируем HeadlessChrome под обычный Chrome
+            # Яндекс SmartCaptcha блокирует запросы с "HeadlessChrome" в UA
+            # ============================================================
+            options.add_argument(
+                "--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/125.0.0.0 Safari/537.36"
+            )
+            options.add_experimental_option("excludeSwitches", ["enable-automation"])
+            options.add_experimental_option("useAutomationExtension", False)
+
             self.driver = webdriver.Remote(
                 command_executor=remote_url,
                 options=options,
             )
 
-            logger.info("Remote Chrome подключен")
+            # Переопределяем navigator.webdriver через CDP
+            self.driver.execute_cdp_cmd(
+                "Page.addScriptToEvaluateOnNewDocument",
+                {
+                    "source": """
+                        Object.defineProperty(navigator, 'webdriver', {
+                            get: () => undefined
+                        });
+                    """
+                },
+            )
+
+            logger.info("Remote Chrome подключен (anti-detection активен)")
 
         except Exception as e:
             logger.error(f"Ошибка Remote драйвера: {e}")

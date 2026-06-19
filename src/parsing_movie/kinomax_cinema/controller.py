@@ -94,47 +94,76 @@ class KinomaxController(AbstractController):
     # ==========================================================
 
     def run(self, city: str = "Липецк"):
-        """
-        Главный публичный метод.
-        """
+        """Главный публичный метод с retry при капче."""
 
-        logger.info("=== Запуск парсинга КИНОМАКС ===")
+        max_retries = kinomax_settings.CAPTCHA_MAX_RETRIES
+        wait_before_retry = kinomax_settings.CAPTCHA_WAIT_BEFORE_RETRY
 
-        cinema_id = self._get_kinomax_cinema_id()
+        for attempt in range(1, max_retries + 1):
+            logger.info("=== Запуск парсинга КИНОМАКС (попытка %d/%d) ===", attempt, max_retries)
 
-        # 1️⃣ Открываем сайт
-        logger.info(f"Переход на URL: {kinomax_settings.KINOMAX_URL}")
-        self.main_parser.navigate(kinomax_settings.KINOMAX_URL)
-
-        # 2️⃣ Выбираем город (1 раз)
-        logger.info(f"Выбор города: {city}")
-        self._select_city_once(city)
-
-        # 3️⃣ Получаем фильмы
-        logger.info("Сбор списка фильмов с главной страницы...")
-        films = self.main_parser.parse_all_movies()
-
-        if not films:
-            logger.warning(f"Фильмы не найдены для города {city}. Проверьте селекторы или доступность сайта.")
-            return
-
-        logger.info(f"Найдено фильмов: {len(films)}")
-
-        # 4️⃣ Обрабатываем каждый фильм
-        for index, film_data in enumerate(films, 1):
             try:
-                self._process_single_movie(
-                    film_data=film_data,
-                    cinema_id=cinema_id,
-                    index=index,
-                    total=len(films),
-                )
-            except Exception:
-                logger.exception(
-                    f"Ошибка обработки фильма #{index}"
-                )
+                cinema_id = self._get_kinomax_cinema_id()
 
-        logger.info("=== Парсинг КИНОМАКС завершён ===")
+                # 1️⃣ Открываем сайт
+                logger.info("Переход на URL: %s", kinomax_settings.KINOMAX_URL)
+                self.main_parser.navigate(kinomax_settings.KINOMAX_URL)
+
+                # 2️⃣ Проверяем капчу ДО выбора города
+                page_html = self.main_parser.driver.page_source
+                from src.parsing_movie.kinomax_cinema.html_utils import is_captcha_page
+                if is_captcha_page(page_html):
+                    logger.warning("🚨 Попытка %d: Обнаружена капча. Пересоздаём драйвер...", attempt)
+                    self.main_parser.close_driver()
+                    self.main_parser._setup_driver()
+                    self.session_parser.driver = self.main_parser.driver
+                    import time
+                    time.sleep(wait_before_retry)
+                    continue
+
+                # 3️⃣ Выбираем город
+                logger.info("Выбор города: %s", city)
+                self._select_city_once(city)
+
+                # 4️⃣ Получаем фильмы
+                logger.info("Сбор списка фильмов с главной страницы...")
+                films = self.main_parser.parse_all_movies()
+
+                if not films:
+                    logger.warning("Фильмы не найдены для города %s.", city)
+                    return
+
+                logger.info("Найдено фильмов: %d", len(films))
+
+                # 5️⃣ Обрабатываем каждый фильм
+                for index, film_data in enumerate(films, 1):
+                    try:
+                        self._process_single_movie(
+                            film_data=film_data,
+                            cinema_id=cinema_id,
+                            index=index,
+                            total=len(films),
+                        )
+                    except Exception:
+                        logger.exception("Ошибка обработки фильма #%d", index)
+
+                logger.info("=== Парсинг КИНОМАКС завершён ===")
+                return  # Успешно — выходим
+
+            except Exception as e:
+                logger.exception("Ошибка на попытке %d: %s", attempt, e)
+                if attempt < max_retries:
+                    logger.info("Пересоздаём драйвер и пробуем снова...")
+                    try:
+                        self.main_parser.close_driver()
+                        self.main_parser._setup_driver()
+                        self.session_parser.driver = self.main_parser.driver
+                    except Exception:
+                        pass
+                    import time
+                    time.sleep(wait_before_retry)
+
+        logger.error("❌ Все попытки парсинга Kinomax исчерпаны")
 
     # ==========================================================
     # MOVIE PROCESSING

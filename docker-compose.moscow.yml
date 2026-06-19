@@ -34,6 +34,7 @@ services:
       - REMOTE_SELENIUM_URL=http://browserless:3000/webdriver
       - SERVICE_NAME=celery-worker
       - SERVER_LOCATION=moscow
+      - CELERY_WORKER_MODE=1
     labels:
       logging: "promtail"
       service: "celery-worker"

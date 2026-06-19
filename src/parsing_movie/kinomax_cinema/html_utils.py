@@ -10,6 +10,30 @@ from src.utils.logger import get_logger
 logger = get_logger(__name__)
 
 
+def is_captcha_page(page_html: str) -> bool:
+    """
+    Проверяет, является ли страница страницей капчи Яндекс SmartCaptcha.
+
+    Returns:
+        True если это страница капчи
+    """
+    captcha_indicators = [
+        "showcaptcha",
+        "smartcaptcha",
+        "x-yandex-captcha",
+        "captcha__hummer",
+        "CheckboxCaptcha-Anchor",
+        "SmartCaptcha-Checkbox",
+        "Я не робот",
+    ]
+    page_lower = page_html.lower()
+    for indicator in captcha_indicators:
+        if indicator.lower() in page_lower:
+            logger.warning("🚨 Обнаружена страница капчи Яндекс (индикатор: %s)", indicator)
+            return True
+    return False
+
+
 def has_empty_schedule_message(page_html: str) -> bool:
     """
     Проверяет, содержит ли страница сообщения о том, что сеансов нет.
@@ -45,6 +69,11 @@ def extract_order_links_html(page_html: str) -> str:
         >>> assert "/order/" in order_links
     """
     try:
+        # Проверяем капчу
+        if is_captcha_page(page_html):
+            logger.error("🚨 Обнаружена капча на странице сеансов!")
+            return ""
+
         # Сначала проверяем наличие сообщений о пустом расписании
         if has_empty_schedule_message(page_html):
             return ""

@@ -52,6 +52,10 @@ class KinomaxSettings(BaseSettings):
     ]
 
 
+    # -------- retry при капче --------
+    CAPTCHA_MAX_RETRIES: int = 2
+    CAPTCHA_WAIT_BEFORE_RETRY: int = 5  # секунд перед повторной попыткой
+
     # -------- скриншоты --------
     SCREENSHOT_AREAS: Dict = {
         "sessions": {
