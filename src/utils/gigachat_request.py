@@ -61,14 +61,37 @@ class GigaChatScheduleParser:
 
     @property
     def giga(self):
-        """Ленивая инициализация клиента GigaChat."""
+        """Ленивая инициализация клиента GigaChat с timeout 30s."""
         if self._giga is None:
             logger.info("Инициализация клиента GigaChat (первый вызов)...")
-            self._giga = GigaChat(
-                credentials=self._credentials,
-                verify_ssl_certs=self._verify_ssl,
-                model=self._model,
-            )
+            import threading
+
+            result = [None]
+            error = [None]
+
+            def _init_client():
+                try:
+                    result[0] = GigaChat(
+                        credentials=self._credentials,
+                        verify_ssl_certs=self._verify_ssl,
+                        model=self._model,
+                    )
+                except Exception as e:
+                    error[0] = e
+
+            t = threading.Thread(target=_init_client, daemon=True)
+            t.start()
+            t.join(timeout=30)
+
+            if t.is_alive():
+                logger.error("❌ GigaChat API недоступен (timeout 30s). Проверьте сеть из Москвы до GigaChat.")
+                raise TimeoutError("GigaChat init timeout (30s) — API недоступен")
+
+            if error[0] is not None:
+                logger.error("❌ Ошибка инициализации GigaChat: %s", error[0])
+                raise RuntimeError(f"GigaChat init failed: {error[0]}") from error[0]
+
+            self._giga = result[0]
             logger.info("Клиент GigaChat инициализирован")
         return self._giga
 

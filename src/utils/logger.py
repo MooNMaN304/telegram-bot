@@ -46,8 +46,18 @@ class SafeUnicodeDecodeHandler(logging.Handler):
         self.target_handler = target_handler
 
     def emit(self, record):
-        """Pass record to target handler, never crash."""
+        """Pass record to target handler, never crash.
+
+        IMPORTANT: We must run target handler's filters BEFORE emit(),
+        because emit() bypasses filters. Without this, attributes added
+        by filters (like service_name, server_location) are missing
+        from the record, causing formatter crashes.
+        """
         try:
+            # Run target handler's filters first
+            for f in self.target_handler.filters:
+                if not f.filter(record):
+                    return
             self.target_handler.emit(record)
         except Exception:
             # Last resort: write to stderr so logs are never silently lost
