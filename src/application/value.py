@@ -99,18 +99,32 @@ def get_session_parser(driver=None):
 
 # --- Сервисы ---
 def get_malibu_controller(driver=None):
+    """Создаёт контроллер Malibu.
+
+    ВАЖНО: Один Chrome driver переиспользуется для main_parser и session_parser.
+    """
     from src.parsing_movie.malibu_cinema.controller import MalibuController
+
+    main_parser = get_main_parser(driver=driver)
+    shared_driver = main_parser.driver
+
     return MalibuController(
         movie_repo=get_movie_repository(),
         cinema_repo=get_cinema_repository(),
         session_repo=get_session_repository(),
         cinema_movie_repo=get_cinema_movie_repository(),
-        main_parser=get_main_parser(driver=driver),
-        movie_detail_parser=get_movie_detail_parser(driver=driver),
-        session_parser=get_session_parser(driver=driver),
+        main_parser=main_parser,
+        movie_detail_parser=get_movie_detail_parser(driver=shared_driver),
+        session_parser=get_session_parser(driver=shared_driver),
     )
 
 def build_kinomax_controller(driver=None):
+    """Создаёт контроллер Kinomax.
+
+    ВАЖНО: Один Chrome driver переиспользуется для main_parser и session_parser.
+    Это критично при MAX_CONCURRENT_SESSIONS=1 в browserless —
+    иначе второе подключение блокируется на CONNECTION_TIMEOUT (10 минут).
+    """
     from src.parsing_movie.kinomax_cinema.controller import KinomaxController
     session = get_session()
 
@@ -142,13 +156,16 @@ def build_kinomax_controller(driver=None):
     )
 
     # =========================
-    # PARSERS
+    # PARSERS — один driver для обоих!
     # =========================
     from src.parsing_movie.kinomax_cinema.main_page_parser import KinomaxMainPageParser
     main_parser = KinomaxMainPageParser(
         driver=driver,
         wait_time=settings.WAIT_PAGE_LOAD,
     )
+
+    # Переиспользуем тот же driver для session_parser
+    shared_driver = main_parser.driver
 
     gigachat_parser = GigaChatScheduleParser(
         credentials=_resolve_gigachat_credentials(),
@@ -160,7 +177,7 @@ def build_kinomax_controller(driver=None):
 
     from src.parsing_movie.kinomax_cinema.session_parser import KinomaxSessionParser
     session_parser = KinomaxSessionParser(
-        driver=driver,
+        driver=shared_driver,
         gigachat_parser=gigachat_parser,
         wait_time=settings.WAIT_PAGE_LOAD,
     )
