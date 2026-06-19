@@ -58,6 +58,8 @@ class BaseParser:
                 "AppleWebKit/537.36 (KHTML, like Gecko) "
                 "Chrome/125.0.0.0 Safari/537.36"
             )
+            # Отключаем флаг автоматизации (совместимо с Selenium 4.14)
+            options.add_argument("--disable-blink-features=AutomationControlled")
             options.add_experimental_option("excludeSwitches", ["enable-automation"])
             options.add_experimental_option("useAutomationExtension", False)
 
@@ -66,18 +68,9 @@ class BaseParser:
                 options=options,
             )
 
-            # Переопределяем navigator.webdriver через CDP
-            self.driver.execute_cdp_cmd(
-                "Page.addScriptToEvaluateOnNewDocument",
-                {
-                    "source": """
-                        Object.defineProperty(navigator, 'webdriver', {
-                            get: () => undefined
-                        });
-                    """
-                },
-            )
-
+            # Для Selenium 4.14 execute_cdp_cmd недоступен
+            # navigator.webdriver уже undefined благодаря
+            # --disable-blink-features=AutomationControlled
             logger.info("Remote Chrome подключен (anti-detection активен)")
 
         except Exception as e:

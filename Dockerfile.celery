@@ -23,7 +23,16 @@ RUN pip install --no-cache-dir celery[redis] eventlet
 # копируем проект
 COPY . .
 
+# Создаем непривилегированного пользователя для безопасности
+RUN useradd --create-home --shell /bin/bash --uid 1000 celeryuser
+
+# Меняем владельца файлов на celeryuser
+RUN chown -R celeryuser:celeryuser /src
+
+# Переключаемся на непривилегированного пользователя
+USER celeryuser
+
 ENV PYTHONPATH=/src
 
-# запуск worker
+# запуск worker (теперь от имени celeryuser, не root)
 CMD ["celery", "-A", "src.parsing_movie.celery:celery_app", "worker", "--loglevel=info"]

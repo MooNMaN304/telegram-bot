@@ -30,6 +30,21 @@ class ServiceContextFilter(logging.Filter):
         return True
 
 
+class SafeFormatter(logging.Formatter):
+    """Formatter that doesn't crash if fields are missing from record.
+    
+    Uses getattr with default values to safely access record attributes.
+    """
+    
+    def format(self, record):
+        # Ensure required attributes exist with defaults
+        if not hasattr(record, 'service_name'):
+            record.service_name = service_name_ctx.get()
+        if not hasattr(record, 'server_location'):
+            record.server_location = server_location_ctx.get()
+        return super().format(record)
+
+
 class SafeUnicodeDecodeHandler(logging.Handler):
     """Handler that safely passes records to the target handler.
 
@@ -84,6 +99,7 @@ LOGGING_CONFIG = {
     "disable_existing_loggers": False,
     "formatters": {
         "default": {
+            "()": "src.utils.logger.SafeFormatter",
             "format": "%(asctime)s %(levelname)s [%(name)s] [%(service_name)s@%(server_location)s] %(message)s",
             "datefmt": "%Y-%m-%d %H:%M:%S",
         },

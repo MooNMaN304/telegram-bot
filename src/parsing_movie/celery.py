@@ -83,6 +83,21 @@ celery_app.conf.update(
     timezone="Europe/Moscow",
     enable_utc=True,
     worker_hijack_root_logger=False,
+    # Redis retry policy for connection issues
+    broker_transport_options={
+        'visibility_timeout': 3600,  # 1 hour
+        'fanout_prefix': True,
+        'fanout_patterns': True,
+    },
+    broker_connection_retry=True,
+    broker_connection_retry_on_startup=True,
+    broker_connection_max_retries=10,
+    broker_connection_timeout=30,
+    result_backend_transport_options={
+        'retry_policy': {
+            'timeout': 30,
+        }
+    },
 )
 
 def celery_configure():
