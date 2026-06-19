@@ -111,6 +111,28 @@ LOGGING_CONFIG = {
         "handlers": ["console", "file"],
     },
     "loggers": {
+        # Celery internal loggers — добавляем service_context filter
+        # чтобы service_name/server_location были не null
+        "celery": {
+            "level": "INFO",
+            "propagate": True,
+            "filters": ["service_context"],
+        },
+        "celery.redirected": {
+            "level": "INFO",
+            "propagate": True,
+            "filters": ["service_context"],
+        },
+        "celery.worker": {
+            "level": "INFO",
+            "propagate": True,
+            "filters": ["service_context"],
+        },
+        "celery.worker.strategy": {
+            "level": "INFO",
+            "propagate": True,
+            "filters": ["service_context"],
+        },
         # Подавляем шумные логи внешних библиотек
         "telebot": {
             "level": "CRITICAL",
