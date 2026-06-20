@@ -26,6 +26,10 @@ COPY . .
 # Создаем непривилегированного пользователя для безопасности
 RUN useradd --create-home --shell /bin/bash --uid 1000 celeryuser
 
+# Удаляем app.log, если он попал из COPY — при volume mount он всё равно
+# перетрётся файлом с хоста, а права на volume будут от root
+RUN rm -f /src/app.log
+
 # Меняем владельца файлов на celeryuser
 RUN chown -R celeryuser:celeryuser /src
 

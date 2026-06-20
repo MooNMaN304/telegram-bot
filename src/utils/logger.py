@@ -209,11 +209,35 @@ def setup_logging(config: dict = None, service_name: str = None, server_location
     if server_location:
         server_location_ctx.set(server_location)
 
-    # Ensure log file directory exists
-    try:
-        LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
-    except Exception:
-        pass
+    # Проверяем, можем ли мы писать в app.log
+    # В Docker-контейнерах volume mount перетирает chown,
+    # поэтому файл может оказаться недоступным для celeryuser
+    # В таком случае — убираем file handler, логи идут только в stdout
+    log_file_writable = True
+    if LOG_FILE.exists():
+        if not os.access(LOG_FILE, os.W_OK):
+            log_file_writable = False
+    else:
+        # Файла нет — проверяем, можем ли создать
+        try:
+            LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
+            with open(LOG_FILE, 'a'):
+                pass
+            LOG_FILE.unlink()  # удаляем, т.к. создали только для проверки
+        except (OSError, PermissionError):
+            log_file_writable = False
+
+    if not log_file_writable:
+        # Убираем file handler из конфига — логи только в stdout
+        config = config.copy()
+        config['handlers'] = {
+            k: v for k, v in config.get('handlers', {}).items()
+            if k != 'file'
+        }
+        config['root']['handlers'] = [
+            h for h in config.get('root', {}).get('handlers', [])
+            if h != 'file'
+        ]
 
     logging.config.dictConfig(config)
 
