@@ -23,11 +23,10 @@ class MalibuMainPageParser(BaseParser):
             self.sleep(1)
             self.press_escape()
 
-            # ждём контейнер (у тебя уже XPath)
-            container_xpath = self.settings.MAIN_PAGE_SELECTORS["container_xpath"]
-
-            if not self.wait_for_element(By.XPATH, container_xpath):
-                logger.warning("Контейнер фильмов не найден")
+            # Ждём загрузки страницы (тег body всегда есть)
+            # extract_release_cards() сама находит /release/ ссылки по всей странице
+            if not self.wait_for_element(By.TAG_NAME, "body"):
+                logger.warning("Страница не загрузилась")
                 return []
 
             page_html = self.driver.page_source

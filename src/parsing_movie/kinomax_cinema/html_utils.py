@@ -164,6 +164,8 @@ def extract_films_from_main(page_html: str) -> list[dict]:
             # ищем ссылки на /films/ по всей странице
             logger.info("Контейнер '%s' не найден, ищем /films/ по всей странице", section_xpath)
             nodes = tree.xpath("//a[contains(@href, '/films/')]")
+            # Отфильтровываем ссылки без структуры карточки фильма (header/footer ссылки)
+            nodes = [n for n in nodes if n.xpath('.//h4 | .//img[@alt]')]
 
         if not nodes:
             logger.warning("Ссылки на фильмы не найдены")

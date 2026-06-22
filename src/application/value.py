@@ -164,8 +164,10 @@ def build_kinomax_controller(driver=None):
         wait_time=settings.WAIT_PAGE_LOAD,
     )
 
-    # Переиспользуем тот же driver для session_parser
-    shared_driver = main_parser.driver
+    # Раньше session_parser использовал shared_driver от main_parser,
+    # но при MAX_CONCURRENT_SESSIONS=5 теперь можно использовать отдельный driver.
+    # Это решает проблему таймаута: main_parser парсит все фильмы (~106 сек),
+    # а session_parser получает свежий driver для сеансов.
 
     gigachat_parser = GigaChatScheduleParser(
         credentials=_resolve_gigachat_credentials(),
@@ -177,7 +179,7 @@ def build_kinomax_controller(driver=None):
 
     from src.parsing_movie.kinomax_cinema.session_parser import KinomaxSessionParser
     session_parser = KinomaxSessionParser(
-        driver=shared_driver,
+        driver=None,  # отдельный driver — свой собственный
         gigachat_parser=gigachat_parser,
         wait_time=settings.WAIT_PAGE_LOAD,
     )
