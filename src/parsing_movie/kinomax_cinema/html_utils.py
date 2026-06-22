@@ -154,14 +154,16 @@ def extract_films_from_main(page_html: str) -> list[dict]:
         section_xpath = kinomax_settings.MAIN_PAGE_XPATHS["movies_section"]
         links_xpath = kinomax_settings.MAIN_PAGE_XPATHS["movie_links"]
 
-        # Ищем секцию с фильмами
+        # Ищем контейнер с фильмами (сначала по section_xpath, потом fallback)
         section = tree.xpath(section_xpath)
-        if not section:
-            logger.warning("Секция фильмов не найдена по селектору: %s", section_xpath)
-            return []
-
-        # Ищем ссылки на фильмы внутри этой секции
-        nodes = section[0].xpath(links_xpath)
+        if section:
+            # Ищем ссылки на фильмы внутри контейнера
+            nodes = section[0].xpath(links_xpath)
+        else:
+            # Fallback: если <main> не найден (например, в старых HTML-снепшотах),
+            # ищем ссылки на /films/ по всей странице
+            logger.info("Контейнер '%s' не найден, ищем /films/ по всей странице", section_xpath)
+            nodes = tree.xpath("//a[contains(@href, '/films/')]")
 
         if not nodes:
             logger.warning("Ссылки на фильмы не найдены")

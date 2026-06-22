@@ -15,15 +15,15 @@ class KinomaxSettings(BaseSettings):
 
     # -------- селекторы --------
     MAIN_PAGE_SELECTORS: Dict = {
-        "movies_container": "npMqImZNgZWHXcs5869n",
-        "movie_card": "Z4IP_eYWwdD_cOsOJsKJ",
-        "movie_title_xpath": ".//div[@class='s_cU8wZmU4_RRklOdW9z']/h4/span",
+        # Селекторы на основе hash-классов больше не используем —
+        # Next.js/css-modules меняет их при каждом билде.
+        # Вместо этого используем XPath с href-паттернами.
     }
 
     # -------- XPath селекторы для парсинга главной страницы --------
     MAIN_PAGE_XPATHS: ClassVar[dict[str, str]] = {
-        # 🔥 главный контейнер фильмов (вторая секция)
-        "movies_section": "(//section)[2]",
+        # 🔥 Используем семантический HTML5 тег <main> — он стабилен
+        "movies_section": "//main",
 
         # ссылки на фильмы внутри контейнера
         "movie_links": ".//a[contains(@href, '/films/')]",

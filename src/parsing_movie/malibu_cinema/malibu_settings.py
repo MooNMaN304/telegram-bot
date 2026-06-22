@@ -8,13 +8,15 @@ class MaliBuSettings(BaseSettings):
 
     # -------- селекторы для главной страницы --------
     MAIN_PAGE_SELECTORS: Dict = {
-        # Основной контейнер релизов (сейчас в прокате)
-        "container_xpath": "//div[contains(@class, 'releases-list')]//div[contains(@class, 'releases-container')]",
+        # CSS-классы типа releases-list / releases-container / releases-item
+        # хэшируются Next.js/css-modules при каждом билде.
+        # Используем стабильные селекторы: <main> + href-паттерн /release/
+        "container_xpath": "//main",
         # Карточки ТОЛЬКО активные (без soon)
-        "movie_links_xpath": ".//a[contains(@class, 'releases-item') and not(contains(@class, 'releases-item_soon'))]",
+        "movie_links_xpath": ".//a[contains(@href, '/release/')]",
         # Для других функций (извлечение карточек)
-        "soon_container_id": "releasesSoon",
-        "soon_class_part": "soon",
+        "soon_link_pattern": "soon",
+        "release_link_pattern": "/release/",
     }
 
     # Селекторы для сеансов (расписания)
@@ -38,13 +40,18 @@ class MaliBuSettings(BaseSettings):
     # Селекторы для html_utils (чистый парсинг без Selenium)
     HTML_UTILS_SELECTORS: Dict = {
         "release_links": {
-            "container_xpath": "//div[contains(@class, 'releases-list')]",
+            # Без классов — используем <main> и href-паттерн
+            "container_xpath": "//main",
             "link_xpath": ".//a[contains(@href, '/release/')]",
             "release_path": "/release/",
         },
         "release_cards": {
-            "card_xpath": ".//a[contains(@class, 'releases-item') and contains(@href, '/release/')]",
-            "title_class": "releases-item-description__title",
+            # Без классов — ищем все ссылки с /release/
+            "card_xpath": ".//a[contains(@href, '/release/')]",
+            # Вместо хэшированного класса — пробуем текстовое содержимое ссылки
+            "title_xpath": ".//text()",
+            "title_selector": "",
+            "title_class": "",
         },
         "film_title": {
             "h1_class": "release__title",

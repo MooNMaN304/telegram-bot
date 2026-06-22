@@ -14,48 +14,27 @@ logger = get_logger(__name__)
 
 def extract_release_links(page_html: str) -> List[str]:
     """
-    Извлекает уникальные ссылки на релизы только из основного контейнера (без soon).
-    
-    Фильтрует:
-    - Только releases-list контейнер (основной список фильмов)
-    - Исключает releases-item_soon (скоро в кино)
+    Извлекает уникальные ID релизов со страницы.
+    Без привязки к хэшированным CSS-классам — используем href-паттерн /release/.
     
     Args:
         page_html: HTML страницы сырой текст
         
     Returns:
-        Список уникальных ID релизов в порядке появления
-        
-    Примеры:
-        >>> html = '''<div class="releases-list">
-        ...     <div class="releases-container">
-        ...         <a class="releases-item" href="/release/1234">Film 1</a>
-        ...         <a class="releases-item releases-item_soon" href="/release/5678">Soon</a>
-        ...     </div>
-        ... </div>'''
-        >>> extract_release_links(html)
-        ['1234']
+        Список уникальных ID релизов в порядке появления (только числовые, без soon)
     """
     if not page_html or not isinstance(page_html, str):
         return []
 
     try:
-        # Оборачиваем в корневой элемент для корректного парсирования фрагментов
         wrapped_html = f'<div>{page_html}</div>'
         tree = html.fromstring(wrapped_html)
     except Exception:
         return []
 
-    # ✅ Найти основной контейнер релизов (только releases-list, исключая soon)
-    container_xpath = malibu_settings.MAIN_PAGE_SELECTORS["container_xpath"]
-    container = tree.xpath(container_xpath)
-    if not container:
-        logger.warning("Контейнер releases-list не найден")
-        return []
-
-    # ✅ Поиск ссылок ТОЛЬКО активные (без soon)
+    # Ищем все ссылки с /release/
     links_xpath = malibu_settings.MAIN_PAGE_SELECTORS["movie_links_xpath"]
-    links = container[0].xpath(links_xpath)
+    links = tree.xpath(links_xpath)
     
     seen: Set[str] = set()
     result: List[str] = []
@@ -64,19 +43,21 @@ def extract_release_links(page_html: str) -> List[str]:
         href = link.get("href", "")
         if not href:
             continue
+
+        # Фильтруем "скоро" по тексту ссылки
+        link_text = link.text_content().strip().lower()
+        if 'soon' in link_text or 'скоро' in link_text:
+            continue
             
-        # Извлечь ID из href: "/release/123456" -> "123456" или "/release/123456/" -> "123456"
         try:
             release_id = href.split("/release/")[1].split("?")[0].rstrip("/")
-            
-            # Проверка что это цифры (исключаем другие строки)
             if release_id.isdigit() and release_id not in seen:
                 seen.add(release_id)
                 result.append(release_id)
         except (IndexError, AttributeError):
             continue
     
-    logger.info("Отфильтровано релизов (без soon): %d", len(result))
+    logger.info("Извлечено релизов: %d", len(result))
     return result
 
 
@@ -137,7 +118,8 @@ def extract_film_title(page_html: str) -> str:
 
 def extract_release_cards(page_html: str) -> List[dict]:
     """
-    Возвращает релизы с title + url + id
+    Возвращает релизы с title + url + id.
+    Без привязки к хэшированным CSS-классам — используем href-паттерны.
     """
     if not page_html:
         return []
@@ -147,40 +129,36 @@ def extract_release_cards(page_html: str) -> List[dict]:
     card_xpath = malibu_settings.HTML_UTILS_SELECTORS["release_cards"]["card_xpath"]
     release_path = malibu_settings.HTML_UTILS_SELECTORS["release_links"]["release_path"]
     
-    # Исключаем блок "скоро" (releasesSoon)
-    soon_id = malibu_settings.MAIN_PAGE_SELECTORS["soon_container_id"]
-    soon_class = malibu_settings.MAIN_PAGE_SELECTORS["soon_class_part"]
-    
-    # Находим все карточки
+    # Находим все ссылки с /release/
     all_cards = tree.xpath(card_xpath)
 
     result = []
+    seen_ids = set()
 
     for card in all_cards:
-        # Проверка 1: Не находится ли карточка внутри контейнера "скоро"
-        ancestors = card.xpath(f"ancestor::div[@id='{soon_id}']")
-        if ancestors:
-            continue
-            
-        # Проверка 2: Нет ли в классе самой карточки слова "soon"
-        card_class = card.get("class", "")
-        if soon_class in card_class:
-            continue
-
         href = card.get("href", "")
         if release_path not in href:
             continue
 
         try:
-            release_id = href.split(release_path)[1].split("?")[0]
-        except:
+            release_id = href.split(release_path)[1].split("?")[0].strip("/")
+        except (IndexError, AttributeError):
             continue
 
-        # 🔥 ВАЖНО: правильный селектор title
-        title_class = malibu_settings.HTML_UTILS_SELECTORS["release_cards"]["title_class"]
-        title_elem = card.xpath(f".//div[contains(@class,'{title_class}')]")
+        # Фильтруем некорректные ID
+        if not release_id or not release_id.isdigit() or release_id in seen_ids:
+            continue
 
-        title = title_elem[0].text_content().strip() if title_elem else None
+        # Фильтруем "скоро" — проверяем текст в нижнем регистре
+        card_text_lower = card.text_content().strip().lower()
+        if 'soon' in card_text_lower or 'скоро' in card_text_lower:
+            continue
+
+        seen_ids.add(release_id)
+
+        # Извлекаем название: оригинальный текст (без .lower()!)
+        card_text = card.text_content().strip()
+        title = card_text.split('\n')[0].strip() if card_text else None
 
         base_url = malibu_settings.MALIBU_URL
         result.append({
@@ -189,4 +167,5 @@ def extract_release_cards(page_html: str) -> List[dict]:
             "title": title
         })
 
+    logger.info("Извлечено релизов (без soon / ads): %d", len(result))
     return result

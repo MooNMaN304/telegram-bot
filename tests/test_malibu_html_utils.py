@@ -61,11 +61,11 @@ class TestExtractReleaseLinks:
         # Не должно быть ошибок, результат может быть пустым
         assert isinstance(result, list)
 
-    def test_no_links_when_no_container(self):
-        """Возвращает пустой список если нет контейнера."""
+    def test_finds_links_anywhere_on_page(self):
+        """Находит /release/ ссылки в любом месте страницы (не только в контейнере)."""
         html = "<div><a href='/release/123'>Film</a></div>"
         result = extract_release_links(html)
-        assert result == []
+        assert result == ["123"]
 
     def test_returns_numeric_ids_only(self):
         """Фильтрует non-numeric ID (например 'soon')."""
