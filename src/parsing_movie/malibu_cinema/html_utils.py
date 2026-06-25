@@ -156,9 +156,22 @@ def extract_release_cards(page_html: str) -> List[dict]:
 
         seen_ids.add(release_id)
 
-        # Извлекаем название: оригинальный текст (без .lower()!)
-        card_text = card.text_content().strip()
-        title = card_text.split('\n')[0].strip() if card_text else None
+        # Извлекаем название из элемента releases-item-description__title
+        # Если не найден — fallback на alt из img или href
+        title = None
+        title_divs = card.xpath(".//div[contains(@class, 'releases-item-description__title')]")
+        if title_divs:
+            title = title_divs[0].text_content().strip()
+
+        # Fallback 1: <img alt="...">
+        if not title:
+            img = card.xpath(".//img[@data-name='poster']")
+            if img:
+                title = img[0].get("alt", "").strip()
+
+        # Fallback 2: <img alt="Постер релиза"> — тогда берём href
+        if not title:
+            title = href  # хотя бы URL, потом kino-api подставит название
 
         base_url = malibu_settings.MALIBU_URL
         result.append({

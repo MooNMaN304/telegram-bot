@@ -6,7 +6,7 @@
 
 import pytest
 from pathlib import Path
-from src.parsing_movie.malibu_cinema.html_utils import extract_release_links
+from src.parsing_movie.malibu_cinema.html_utils import extract_release_links, extract_release_cards
 
 
 @pytest.fixture
@@ -128,3 +128,60 @@ class TestIntegration:
         links = extract_release_links(malibu_without_movies_html)
         # Может быть пустой или содержать несколько элементов
         assert isinstance(links, list)
+
+
+class TestExtractReleaseCards:
+    """Тесты извлечения карточек релизов с названиями."""
+
+    def test_extracts_cards_with_clean_titles(self, malibu_with_movies_html):
+        """Извлекает карточки с чистыми названиями (без мусора из text_content)."""
+        cards = extract_release_cards(malibu_with_movies_html)
+        assert isinstance(cards, list)
+        assert len(cards) > 0
+        # Все карточки должны иметь чистые названия (не склеенный текст)
+        for card in cards:
+            assert "release_id" in card
+            assert "url" in card
+            assert "title" in card
+            # Название НЕ должно содержать典型ные мусорные паттерны
+            title = card["title"]
+            assert title is not None
+            assert len(title) < 100, f"Название слишком длинное — возможно мусор: {title!r}"
+            # Название не должно содержать "₽" или "Зал" (признаки склеенного текста)
+            assert "₽" not in title, f"Название содержит символ ₽ (мусор): {title!r}"
+            assert "Зал" not in title, f"Название содержит 'Зал' (мусор): {title!r}"
+
+    def test_cards_have_valid_ids(self, malibu_with_movies_html):
+        """Все ID релизов — числа."""
+        cards = extract_release_cards(malibu_with_movies_html)
+        for card in cards:
+            assert card["release_id"].isdigit(), f"ID не число: {card['release_id']!r}"
+
+    def test_cards_have_full_urls(self, malibu_with_movies_html):
+        """URL полные (с доменом)."""
+        cards = extract_release_cards(malibu_with_movies_html)
+        for card in cards:
+            assert card["url"].startswith("http"), f"URL не полный: {card['url']!r}"
+
+    def test_no_duplicates(self, malibu_with_movies_html):
+        """Нет дублирующихся release_id."""
+        cards = extract_release_cards(malibu_with_movies_html)
+        ids = [c["release_id"] for c in cards]
+        assert len(ids) == len(set(ids)), "Есть дублирующиеся release_id"
+
+    def test_known_films_in_fixture(self, malibu_with_movies_html):
+        """В фиксчуре есть ожидаемые фильмы с чистыми названиями."""
+        cards = extract_release_cards(malibu_with_movies_html)
+        titles = {c["title"] for c in cards}
+        # Эти фильмы точно есть в фиксчуре
+        assert "Нормал" in titles, f"Фильм 'Нормал' не найден в {titles}"
+        assert "Гуру" in titles, f"Фильм 'Гуру' не найден в {titles}"
+        assert "Мстители: Финал" in titles, f"Фильм 'Мстители: Финал' не найден в {titles}"
+
+    def test_returns_empty_for_empty_html(self):
+        """Пустой HTML → пустой список."""
+        assert extract_release_cards("") == []
+
+    def test_returns_empty_for_none(self):
+        """None → пустой список."""
+        assert extract_release_cards(None) == []
