@@ -57,23 +57,30 @@ jobs:
             cd /root/telegram-bot
 
             # Pull latest code
-            echo "[1/3] Pulling latest code..."
+            echo "[1/5] Pulling latest code..."
             git reset --hard HEAD
             git clean -fd
             git pull origin master
 
             # Fix permissions
-            echo "[2/3] Fixing permissions..."
+            echo "[2/5] Fixing permissions..."
             chmod +x entrypoint.bot.sh
             chmod +x scripts/*.sh 2>/dev/null || true
 
             # Build and restart bot
-            echo "[3/4] Building and restarting bot..."
+            echo "[3/5] Building and restarting bot..."
             docker compose -f docker-compose.frankfurt.yml up -d --build
 
             # Start observability stack
-            echo "[4/4] Starting observability stack..."
+            echo "[4/5] Starting observability stack..."
             docker compose -f docker-compose.observability.yml up -d
+
+            # Reload Grafana dashboards (провижининг + API)
+            echo "[5/5] Reloading Grafana dashboards..."
+            docker compose -f docker-compose.observability.yml restart grafana
+            sleep 3
+            curl -s -X POST http://localhost:3000/api/admin/provisioning/dashboards/reload \
+              --connect-timeout 5 || echo "Grafana API reload skipped (non-critical)"
 
             echo "=== Frankfurt deployment complete! ==="
 

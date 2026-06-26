@@ -36,6 +36,8 @@ services:
       - GF_AUTH_ANONYMOUS_ENABLED=true
       - GF_AUTH_ANONYMOUS_ORG_ROLE=Viewer
       - GF_INSTALL_PLUGINS=grafana-piechart-panel
+      # Автоматическая перезагрузка дашбордов при изменении файлов на диске
+      - GF_PROVISIONING_DASHBOARDS_AUTO_RELOAD=true
     volumes:
       - grafana_storage:/var/lib/grafana
       - ./observability/grafana/datasources:/etc/grafana/provisioning/datasources
