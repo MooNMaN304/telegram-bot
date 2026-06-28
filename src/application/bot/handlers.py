@@ -18,6 +18,7 @@ from src.application.admin_commands import run_parsing
 from src.application.value import get_malibu_controller
 from src.application.value import get_user_service, get_movie_service, get_cinema_repository
 from src.utils.logger import get_logger
+from src.utils.metrics import bot_requests, bot_errors
 
 logger = get_logger(__name__)
 
@@ -28,6 +29,7 @@ def register_handlers(bot: TeleBot):
     # ---------------------------
     @bot.message_handler(commands=["start"])
     def start(message: Message):
+        bot_requests.labels(handler="start").inc()
         user_service = get_user_service()
         user_service.create_or_update_user(message.from_user)
 
@@ -48,6 +50,7 @@ def register_handlers(bot: TeleBot):
     # ---------------------------
     @bot.callback_query_handler(func=lambda call: call.data == "start_parsing")
     def start_parsing(call: CallbackQuery):
+        bot_requests.labels(handler="start_parsing").inc()
         chat_id = call.message.chat.id
         user_id = str(call.from_user.id)
 
@@ -62,6 +65,7 @@ def register_handlers(bot: TeleBot):
             msg = run_parsing()
             bot.send_message(chat_id, f"✅ {msg}")
         except Exception as e:
+            bot_errors.labels(error_type="parsing").inc()
             logger.exception("Ошибка при выполнении парсинга")
             bot.send_message(chat_id, f"❌ Ошибка: {e}")
 
@@ -70,6 +74,7 @@ def register_handlers(bot: TeleBot):
     # ---------------------------
     @bot.callback_query_handler(func=lambda call: call.data == "films_today")
     def films_today(call: CallbackQuery):
+        bot_requests.labels(handler="films_today").inc()
         chat_id = call.message.chat.id
         try:
             movie_service = get_movie_service()
@@ -82,11 +87,13 @@ def register_handlers(bot: TeleBot):
             text = "🎬 Фильмы с сеансами сегодня:\n\n"
             bot.send_message(call.message.chat.id, text, reply_markup=film_for_today(movies))
         except Exception as e:
+            bot_errors.labels(error_type="films_today").inc()
             logger.exception(f"Ошибка при получении фильмов на сегодня: {e}")
             bot.send_message(chat_id, f"❌ Ошибка: {e}")
 
     @bot.callback_query_handler(func=lambda call: call.data[:8] == "sessions")
     def get_sessions_by_film(call: CallbackQuery):
+        bot_requests.labels(handler="sessions_by_film").inc()
         chat_id = call.message.chat.id
         try:
             movie_service = get_movie_service()
@@ -101,6 +108,7 @@ def register_handlers(bot: TeleBot):
             text = "🎬 Cеансы на сегодня:\n\n"
             bot.send_message(call.message.chat.id, text, reply_markup=sessions_by_film(sessions))
         except Exception as e:
+            bot_errors.labels(error_type="sessions_by_film").inc()
             logger.exception(f"Ошибка при получении сеансов: {e}")
             bot.send_message(chat_id, f"❌ Ошибка: {e}")
 
@@ -109,6 +117,7 @@ def register_handlers(bot: TeleBot):
     # ---------------------------
     @bot.callback_query_handler(func=lambda call: call.data == "cinemas_list")
     def cinemas_list(call: CallbackQuery):
+        bot_requests.labels(handler="cinemas_list").inc()
         chat_id = call.message.chat.id
         try:
             cinema_repo = get_cinema_repository()
@@ -125,6 +134,7 @@ def register_handlers(bot: TeleBot):
                 reply_markup=cinemas_keyboard(cinemas)
             )
         except Exception as e:
+            bot_errors.labels(error_type="cinemas_list").inc()
             logger.exception(f"Ошибка при получении списка кинотеатров: {e}")
             bot.answer_callback_query(call.id, f"❌ Ошибка: {e}")
 
@@ -133,6 +143,7 @@ def register_handlers(bot: TeleBot):
     # ---------------------------
     @bot.callback_query_handler(func=lambda call: call.data.startswith("cinema_info_"))
     def cinema_info(call: CallbackQuery):
+        bot_requests.labels(handler="cinema_info").inc()
         chat_id = call.message.chat.id
         try:
             cinema_id = int(call.data.replace("cinema_info_", ""))
@@ -152,6 +163,7 @@ def register_handlers(bot: TeleBot):
                 reply_markup=cinema_detail_keyboard(cinema_id)
             )
         except Exception as e:
+            bot_errors.labels(error_type="cinema_info").inc()
             logger.exception(f"Ошибка при получении информации о кинотеатре: {e}")
             bot.answer_callback_query(call.id, f"❌ Ошибка: {e}")
 
@@ -160,6 +172,7 @@ def register_handlers(bot: TeleBot):
     # ---------------------------
     @bot.callback_query_handler(func=lambda call: call.data.startswith("cinema_movies_"))
     def cinema_movies(call: CallbackQuery):
+        bot_requests.labels(handler="cinema_movies").inc()
         chat_id = call.message.chat.id
         try:
             cinema_id = int(call.data.replace("cinema_movies_", ""))
@@ -178,6 +191,7 @@ def register_handlers(bot: TeleBot):
                 reply_markup=film_for_today(movies)
             )
         except Exception as e:
+            bot_errors.labels(error_type="cinema_movies").inc()
             logger.exception(f"Ошибка при получении фильмов в кинотеатре: {e}")
             bot.answer_callback_query(call.id, f"❌ Ошибка: {e}")
 
@@ -186,6 +200,7 @@ def register_handlers(bot: TeleBot):
     # ---------------------------
     @bot.callback_query_handler(func=lambda call: call.data == "back_to_main")
     def back_to_main(call: CallbackQuery):
+        bot_requests.labels(handler="back_to_main").inc()
         try:
             user_id = str(call.from_user.id)
             if user_id == settings.ADMIN_TELEGRAM_ID:
@@ -202,24 +217,6 @@ def register_handlers(bot: TeleBot):
                 reply_markup=kb
             )
         except Exception as e:
+            bot_errors.labels(error_type="back_to_main").inc()
             logger.exception(f"Ошибка при возврате в главное меню: {e}")
             bot.answer_callback_query(call.id, f"❌ Ошибка: {e}")
-
-    # @bot.callback_query_handler(func=lambda call: call.data[8:] == "sessions")
-    # def get(call: CallbackQuery):
-    #     chat_id = call.message.chat.id
-
-    #     movie_repo = get_movie_repository()
-    #     movies = movie_repo.get_movies_with_sessions_today()
-
-    #     if not movies:
-    #         bot.send_message(chat_id, "Сегодня нет фильмов.")
-    #         return
-
-    #     text = "🎬 Фильмы с сеансами сегодня:\n\n"
-
-    #     bot.send_message(
-    #         call.message.chat.id,
-    #         text,
-    #         reply_markup=film_for_today(movies)
-    #     )

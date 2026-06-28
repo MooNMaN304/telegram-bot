@@ -1,0 +1,13 @@
+# Prometheus config for scraping bot and celery metrics
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  # Telegram Bot (Frankfurt) — метрики :8000/metrics
+  - job_name: "telegram-bot"
+    static_configs:
+      - targets: ["telegram_bot_app:8000"]
+        labels:
+          service: "telegram-bot"
+          server_location: "frankfurt"

@@ -6,6 +6,7 @@ from lxml import html
 
 from src.parsing_movie.kinomax_cinema.kinomax_settings import kinomax_settings
 from src.utils.logger import get_logger
+from src.utils.metrics import captcha_detections
 
 logger = get_logger(__name__)
 
@@ -30,6 +31,7 @@ def is_captcha_page(page_html: str) -> bool:
     for indicator in captcha_indicators:
         if indicator.lower() in page_lower:
             logger.warning("🚨 Обнаружена страница капчи Яндекс (индикатор: %s)", indicator)
+            captcha_detections.inc()
             return True
     return False
 

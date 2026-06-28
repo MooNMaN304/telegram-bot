@@ -102,20 +102,69 @@ def get_malibu_controller(driver=None):
     """Создаёт контроллер Malibu.
 
     ВАЖНО: Один Chrome driver переиспользуется для main_parser и session_parser.
+    Одна сессия БД для всех репозиториев (как build_kinomax_controller).
     """
     from src.parsing_movie.malibu_cinema.controller import MalibuController
+    session = get_session()
 
-    main_parser = get_main_parser(driver=driver)
+    # =========================
+    # REPOSITORIES — единая сессия
+    # =========================
+    movie_repo = MovieRepository(
+        session=session,
+        movie_model=MovieModel,
+        session_model=SessionModel,
+        cinema_movie_model=CinemaMovieModel,
+    )
+
+    cinema_repo = CinemaRepository(
+        session=session,
+        cinema_model=CinemaModel,
+    )
+
+    session_repo = SessionRepository(
+        session=session,
+        session_model=SessionModel,
+    )
+
+    cinema_movie_repo = CinemaMovieRepository(
+        session=session,
+        cinema_movie_model=CinemaMovieModel,
+        session_model=SessionModel,
+        movie_model=MovieModel,
+    )
+
+    # =========================
+    # PARSERS — один driver для обоих
+    # =========================
+    from src.parsing_movie.malibu_cinema.main_page_parser import MalibuMainPageParser
+    main_parser = MalibuMainPageParser(
+        driver=driver,
+        wait_time=settings.WAIT_PAGE_LOAD,
+    )
     shared_driver = main_parser.driver
 
+    movie_detail_parser = MovieDetailParser(
+        api_client=KinoAPIClient()
+    )
+
+    from src.parsing_movie.malibu_cinema.session_parser import MalibuSessionParser
+    session_parser = MalibuSessionParser(
+        driver=shared_driver,
+        wait_time=settings.WAIT_PAGE_LOAD,
+    )
+
+    # =========================
+    # CONTROLLER
+    # =========================
     return MalibuController(
-        movie_repo=get_movie_repository(),
-        cinema_repo=get_cinema_repository(),
-        session_repo=get_session_repository(),
-        cinema_movie_repo=get_cinema_movie_repository(),
+        movie_repo=movie_repo,
+        cinema_repo=cinema_repo,
+        session_repo=session_repo,
+        cinema_movie_repo=cinema_movie_repo,
         main_parser=main_parser,
-        movie_detail_parser=get_movie_detail_parser(driver=shared_driver),
-        session_parser=get_session_parser(driver=shared_driver),
+        movie_detail_parser=movie_detail_parser,
+        session_parser=session_parser,
     )
 
 def build_kinomax_controller(driver=None):

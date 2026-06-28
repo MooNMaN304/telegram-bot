@@ -60,6 +60,7 @@ services:
       - LOG_FORMAT=json
       - SERVICE_NAME=telegram-bot
       - SERVER_LOCATION=frankfurt
+      - METRICS_PORT=8000
     labels:
       logging: "promtail"
       service: "telegram-bot"
@@ -73,11 +74,15 @@ services:
       - .:/src
     networks:
       - frankfurt_network
+      - observability
     restart: unless-stopped
 
 networks:
   frankfurt_network:
     driver: bridge
+  # Подключаем внешнюю сеть observability для доступа Prometheus к метрикам бота
+  observability:
+    external: true
 
 volumes:
   postgres_data:

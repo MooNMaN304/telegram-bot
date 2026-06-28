@@ -26,6 +26,24 @@ services:
       - observability
     restart: unless-stopped
 
+  prometheus:
+    image: prom/prometheus:v2.53.1
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.console.libraries=/etc/prometheus/console_libraries"
+      - "--web.console.templates=/etc/prometheus/consoles"
+      - "--web.enable-lifecycle"
+    volumes:
+      - ./observability/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    networks:
+      - observability
+    restart: unless-stopped
+
   grafana:
     image: grafana/grafana:10.2.3
     container_name: grafana
@@ -52,4 +70,5 @@ networks:
 
 volumes:
   loki_data:
+  prometheus_data:
   grafana_storage:

@@ -2,1257 +2,284 @@
   "title": "Telegram Bot — полный мониторинг",
   "uid": "telegram-bot-full-monitoring",
   "schemaVersion": 39,
-  "version": 2,
-  "refresh": "30s",
-  "time": {
-    "from": "now-6h",
-    "to": "now"
-  },
+  "version": 3,
+  "refresh": "15s",
+  "time": { "from": "now-6h", "to": "now" },
   "timepicker": {},
-  "tags": ["telegram-bot", "parsing", "monitoring"],
+  "tags": ["telegram-bot", "parsing", "prometheus"],
   "panels": [
     {
-      "id": 9000,
+      "id": 9001,
       "title": "🖥 Состояние серверов и сервисов",
       "type": "row",
       "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 }
     },
     {
       "id": 1,
-      "title": "🔥 Frankfurt (бот)",
+      "title": "🔥 Bot Frankfurt (live)",
       "type": "stat",
-      "datasource": { "type": "loki", "uid": "P8E80F9AEF21F6940" },
-      "targets": [
-        {
-          "expr": "count_over_time({service=\"telegram-bot\", server_location=\"frankfurt\"}[5m])",
-          "refId": "A"
-        }
-      ],
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "expr": "up{job=\"telegram-bot\"}", "refId": "A" }],
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "thresholds" },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              { "color": "red", "value": null },
-              { "color": "green", "value": 1 }
-            ]
-          },
-          "mappings": [
-            {
-              "type": "value",
-              "options": {
-                "0": {
-                  "text": "🔴 НЕТ ДАННЫХ",
-                  "color": "red"
-                }
-              }
-            }
-          ],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 0.5 }] },
+          "mappings": [{ "type": "value", "options": { "0": { "text": "🔴 DOWN", "color": "red" }, "1": { "text": "✅ UP", "color": "green" } } }],
           "unit": "none"
         }
       },
-      "options": {
-        "colorMode": "background",
-        "graphMode": "none",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": ["lastNotNull"],
-          "fields": "",
-          "values": false
-        },
-        "textMode": "auto"
-      },
-      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 1 },
-      "description": "Показывает 🔴 если от бота на Frankfurt не было логов последние 5 минут"
+      "options": { "colorMode": "background", "graphMode": "none", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
+      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 1 }
     },
     {
       "id": 2,
-      "title": "🔥 Frankfurt (celery)",
-      "type": "stat",
-      "datasource": { "type": "loki", "uid": "P8E80F9AEF21F6940" },
-      "targets": [
-        {
-          "expr": "count_over_time({service=\"celery-worker\", server_location=\"frankfurt\"}[5m])",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "color": { "mode": "thresholds" },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              { "color": "red", "value": null },
-              { "color": "green", "value": 1 }
-            ]
-          },
-          "mappings": [
-            {
-              "type": "value",
-              "options": {
-                "0": { "text": "🔴 НЕТ ДАННЫХ", "color": "red" }
-              }
-            }
-          ],
-          "unit": "none"
-        }
-      },
-      "options": {
-        "colorMode": "background",
-        "graphMode": "none",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": ["lastNotNull"],
-          "fields": "",
-          "values": false
-        },
-        "textMode": "auto"
-      },
-      "gridPos": { "h": 4, "w": 4, "x": 4, "y": 1 },
-      "description": "Показывает 🔴 если от celery на Frankfurt не было логов последние 5 минут"
+      "title": "📊 Bot request rate",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "expr": "rate(bot_requests_total[5m])", "legendFormat": "All", "refId": "A" }],
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "custom": { "drawStyle": "line", "fillOpacity": 20, "lineInterpolation": "smooth", "lineWidth": 2 }, "unit": "reqps" } },
+      "options": { "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "none" } },
+      "gridPos": { "h": 4, "w": 4, "x": 4, "y": 1 }
     },
     {
       "id": 3,
-      "title": "🔥 Москва (celery)",
+      "title": "❌ Bot errors",
       "type": "stat",
-      "datasource": { "type": "loki", "uid": "P8E80F9AEF21F6940" },
-      "targets": [
-        {
-          "expr": "count_over_time({service=\"celery-worker\", server_location=\"moscow\"}[5m])",
-          "refId": "A"
-        }
-      ],
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "expr": "sum(bot_errors_total)", "refId": "A" }],
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "thresholds" },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              { "color": "red", "value": null },
-              { "color": "green", "value": 1 }
-            ]
-          },
-          "mappings": [
-            {
-              "type": "value",
-              "options": {
-                "0": { "text": "🔴 НЕТ ДАННЫХ", "color": "red" }
-              }
-            }
-          ],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "orange", "value": 1 }, { "color": "red", "value": 10 }] },
           "unit": "none"
         }
       },
-      "options": {
-        "colorMode": "background",
-        "graphMode": "none",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": ["lastNotNull"],
-          "fields": "",
-          "values": false
-        },
-        "textMode": "auto"
-      },
-      "gridPos": { "h": 4, "w": 4, "x": 8, "y": 1 },
-      "description": "Показывает 🔴 если от celery на Москве не было логов последние 5 минут"
+      "options": { "colorMode": "background", "graphMode": "none", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
+      "gridPos": { "h": 4, "w": 4, "x": 8, "y": 1 }
     },
     {
-      "id": 5,
-      "title": "❌ Ошибки на Frankfurt",
-      "type": "stat",
-      "datasource": { "type": "loki", "uid": "P8E80F9AEF21F6940" },
-      "targets": [
-        {
-          "expr": "sum(count_over_time({server_location=\"frankfurt\"} | json | level=\"ERROR\"[$__range]))",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "color": { "mode": "thresholds" },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              { "color": "green", "value": null },
-              { "color": "orange", "value": 1 },
-              { "color": "red", "value": 10 }
-            ]
-          },
-          "unit": "none"
-        }
-      },
-      "options": {
-        "colorMode": "background",
-        "graphMode": "none",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": ["lastNotNull"],
-          "fields": "",
-          "values": false
-        },
-        "textMode": "auto"
-      },
-      "gridPos": { "h": 4, "w": 4, "x": 12, "y": 1 }
-    },
-    {
-      "id": 6,
-      "title": "❌ Ошибки на Москве",
-      "type": "stat",
-      "datasource": { "type": "loki", "uid": "P8E80F9AEF21F6940" },
-      "targets": [
-        {
-          "expr": "sum(count_over_time({server_location=\"moscow\"} | json | level=\"ERROR\"[$__range]))",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "color": { "mode": "thresholds" },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              { "color": "green", "value": null },
-              { "color": "orange", "value": 1 },
-              { "color": "red", "value": 10 }
-            ]
-          },
-          "unit": "none"
-        }
-      },
-      "options": {
-        "colorMode": "background",
-        "graphMode": "none",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": ["lastNotNull"],
-          "fields": "",
-          "values": false
-        },
-        "textMode": "auto"
-      },
-      "gridPos": { "h": 4, "w": 4, "x": 16, "y": 1 }
-    },
-    {
-      "id": 7,
-      "title": "💬 Активных пользователей (уникальных chat_id)",
-      "type": "stat",
-      "datasource": { "type": "loki", "uid": "P8E80F9AEF21F6940" },
-      "targets": [
-        {
-          "expr": "sum(count_over_time({service=\"telegram-bot\"}[$__range]))",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "color": { "mode": "palette-classic" },
-          "unit": "none"
-        }
-      },
-      "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": ["lastNotNull"],
-          "fields": "",
-          "values": false
-        },
-        "textMode": "auto"
-      },
-      "gridPos": { "h": 4, "w": 4, "x": 20, "y": 1 },
-      "description": "Общее количество логов от бота (прокси для активности)"
-    },
-    {
-      "id": 8,
-      "title": "📊 Активность логов по серверам",
+      "id": 4,
+      "title": "📊 Requests by handler",
       "type": "timeseries",
-      "datasource": { "type": "loki", "uid": "P8E80F9AEF21F6940" },
-      "targets": [
-        {
-          "expr": "sum by (server_location) (rate({service=~\"telegram-bot|celery-worker\"}[5m]))",
-          "legendFormat": "{{server_location}}",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "color": { "mode": "palette-classic" },
-          "custom": {
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "drawStyle": "line",
-            "fillOpacity": 20,
-            "gradientMode": "opacity",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "lineInterpolation": "smooth",
-            "lineWidth": 2,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "never",
-            "spanNulls": true,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "unit": "cps"
-        }
-      },
-      "options": {
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "none"
-        }
-      },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "expr": "rate(bot_requests_total[5m])", "legendFormat": "{{handler}}", "refId": "A" }],
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "custom": { "drawStyle": "line", "fillOpacity": 20, "lineInterpolation": "smooth", "lineWidth": 2 }, "unit": "reqps" } },
+      "options": { "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "none" } },
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 5 }
     },
     {
-      "id": 9,
-      "title": "📊 Активность логов по сервисам",
+      "id": 5,
+      "title": "📊 Error rate by type",
       "type": "timeseries",
-      "datasource": { "type": "loki", "uid": "P8E80F9AEF21F6940" },
-      "targets": [
-        {
-          "expr": "sum by (service) (rate({service=~\"telegram-bot|celery-worker\"}[5m]))",
-          "legendFormat": "{{service}}",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "color": { "mode": "palette-classic" },
-          "custom": {
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "drawStyle": "line",
-            "fillOpacity": 20,
-            "gradientMode": "opacity",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "lineInterpolation": "smooth",
-            "lineWidth": 2,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "never",
-            "spanNulls": true,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "unit": "cps"
-        }
-      },
-      "options": {
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "none"
-        }
-      },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "expr": "rate(bot_errors_total[5m])", "legendFormat": "{{error_type}}", "refId": "A" }],
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "custom": { "drawStyle": "line", "fillOpacity": 30, "lineInterpolation": "smooth", "lineWidth": 2 }, "unit": "cps" } },
+      "options": { "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "none" } },
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 5 }
     },
-
     {
-      "id": 9010,
-      "title": "⚠️ Ошибки и предупреждения",
+      "id": 9002,
+      "title": "⚠️ Ошибки из логов",
       "type": "row",
       "gridPos": { "h": 1, "w": 24, "x": 0, "y": 13 }
     },
     {
-      "id": 10,
-      "title": "⚠️ Rate ошибок по сервисам",
-      "type": "timeseries",
+      "id": 6,
+      "title": "📋 Последние ошибки (Loki)",
+      "type": "logs",
       "datasource": { "type": "loki", "uid": "P8E80F9AEF21F6940" },
-      "targets": [
-        {
-          "expr": "sum by (service) (rate({service=~\"telegram-bot|celery-worker\"} | json | level=\"ERROR\"[5m]))",
-          "legendFormat": "{{service}}",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "color": { "mode": "palette-classic" },
-          "custom": {
-            "drawStyle": "line",
-            "fillOpacity": 30,
-            "lineInterpolation": "smooth",
-            "lineWidth": 2,
-            "pointSize": 5,
-            "showPoints": "never",
-            "spanNulls": true,
-            "stacking": { "group": "A", "mode": "none" },
-            "thresholdsStyle": { "mode": "dashed" }
-          },
-          "unit": "cps"
-        }
-      },
-      "options": {
-        "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true },
-        "tooltip": { "mode": "multi", "sort": "none" }
-      },
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 14 }
+      "targets": [{ "expr": "{service=~\"telegram-bot|celery-worker\"} | json | level=\"ERROR\"", "refId": "A" }],
+      "options": { "showTime": true, "showLabels": true, "showCommonLabels": false, "wrapLogMessage": true, "prettifyLogsMessage": true, "enableLogDetails": true, "dedupStrategy": "none", "sortOrder": "Descending" },
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 14 }
+    },
+    {
+      "id": 9003,
+      "title": "🎬 Парсинг",
+      "type": "row",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 24 }
+    },
+    {
+      "id": 7,
+      "title": "✅ Парсинг успешно",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "expr": "sum(parsing_tasks_total{status=\"success\"})", "refId": "A" }],
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] }, "unit": "none" } },
+      "options": { "colorMode": "background", "graphMode": "none", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
+      "gridPos": { "h": 4, "w": 3, "x": 0, "y": 25 }
+    },
+    {
+      "id": 8,
+      "title": "❌ Парсинг ошибок",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "expr": "sum(parsing_tasks_total{status=\"failed\"})", "refId": "A" }],
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "red", "value": 1 }] }, "unit": "none" } },
+      "options": { "colorMode": "background", "graphMode": "none", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
+      "gridPos": { "h": 4, "w": 3, "x": 3, "y": 25 }
+    },
+    {
+      "id": 9,
+      "title": "🔄 В процессе",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "expr": "sum(parsing_in_progress)", "refId": "A" }],
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "orange", "value": 1 }, { "color": "red", "value": 3 }] }, "unit": "none" } },
+      "options": { "colorMode": "background", "graphMode": "none", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
+      "gridPos": { "h": 4, "w": 3, "x": 6, "y": 25 }
+    },
+    {
+      "id": 10,
+      "title": "🎬 Фильмов найдено",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "expr": "sum(movies_found_total) by (cinema)", "legendFormat": "{{cinema}}", "refId": "A" }],
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "unit": "none" } },
+      "options": { "colorMode": "value", "graphMode": "none", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
+      "gridPos": { "h": 4, "w": 3, "x": 9, "y": 25 }
     },
     {
       "id": 11,
-      "title": "⚠️ Rate ошибок по серверам",
-      "type": "timeseries",
-      "datasource": { "type": "loki", "uid": "P8E80F9AEF21F6940" },
-      "targets": [
-        {
-          "expr": "sum by (server_location) (rate({service=~\"telegram-bot|celery-worker\"} | json | level=\"ERROR\"[5m]))",
-          "legendFormat": "{{server_location}}",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "color": { "mode": "palette-classic" },
-          "custom": {
-            "drawStyle": "line",
-            "fillOpacity": 30,
-            "lineInterpolation": "smooth",
-            "lineWidth": 2,
-            "pointSize": 5,
-            "showPoints": "never",
-            "spanNulls": true,
-            "stacking": { "group": "A", "mode": "none" },
-            "thresholdsStyle": { "mode": "dashed" }
-          },
-          "unit": "cps"
-        }
-      },
-      "options": {
-        "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true },
-        "tooltip": { "mode": "multi", "sort": "none" }
-      },
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 14 }
+      "title": "🎫 Сеансов найдено",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "expr": "sum(sessions_found_total) by (cinema)", "legendFormat": "{{cinema}}", "refId": "A" }],
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "unit": "none" } },
+      "options": { "colorMode": "value", "graphMode": "none", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
+      "gridPos": { "h": 4, "w": 3, "x": 12, "y": 25 }
     },
     {
       "id": 12,
-      "title": "📋 Последние ошибки",
-      "type": "logs",
-      "datasource": { "type": "loki", "uid": "P8E80F9AEF21F6940" },
-      "targets": [
-        {
-          "expr": "{service=~\"telegram-bot|celery-worker\"} | json | level=\"ERROR\"",
-          "refId": "A"
-        }
-      ],
-      "options": {
-        "showTime": true,
-        "showLabels": true,
-        "showCommonLabels": false,
-        "wrapLogMessage": true,
-        "prettifyLogsMessage": true,
-        "enableLogDetails": true,
-        "dedupStrategy": "none",
-        "sortOrder": "Descending"
-      },
-      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 22 }
-    },
-
-    {
-      "id": 9020,
-      "title": "🌐 Браузеры (Selenium / Browserless) и драйверы",
-      "type": "row",
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 30 }
+      "title": "⏱ Длит-ть парсинга (p99)",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "expr": "histogram_quantile(0.99, sum(rate(parsing_duration_seconds_bucket[5m])) by (le, parser))", "legendFormat": "{{parser}}", "refId": "A" }],
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "unit": "s" } },
+      "options": { "colorMode": "value", "graphMode": "none", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
+      "gridPos": { "h": 4, "w": 3, "x": 15, "y": 25 }
     },
     {
       "id": 13,
-      "title": "🧪 Browserless alive (Москва)",
+      "title": "🚨 Капча всего",
       "type": "stat",
-      "datasource": { "type": "loki", "uid": "P8E80F9AEF21F6940" },
-      "targets": [
-        {
-          "expr": "count_over_time({server_location=\"moscow\"} |= \"Browserless\" |= \"успешно\"[30m])",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "color": { "mode": "thresholds" },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              { "color": "red", "value": null },
-              { "color": "green", "value": 1 }
-            ]
-          },
-          "mappings": [
-            {
-              "type": "value",
-              "options": {
-                "0": { "text": "🔴 НЕТ ПОДКЛЮЧЕНИЯ", "color": "red" }
-              }
-            }
-          ],
-          "unit": "none"
-        }
-      },
-      "options": {
-        "colorMode": "background",
-        "graphMode": "none",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": ["lastNotNull"],
-          "fields": "",
-          "values": false
-        },
-        "textMode": "auto"
-      },
-      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 31 },
-      "description": "Проверка подключения к Browserless (Москва) за последние 30 минут"
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "expr": "sum(captcha_detections_total)", "refId": "A" }],
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "orange", "value": 3 }, { "color": "red", "value": 10 }] }, "unit": "none" } },
+      "options": { "colorMode": "background", "graphMode": "none", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
+      "gridPos": { "h": 4, "w": 3, "x": 18, "y": 25 }
     },
     {
       "id": 14,
-      "title": "🚨 Срабатываний капчи (Kinomax)",
+      "title": "🔄 Пересозд. драйвера",
       "type": "stat",
-      "datasource": { "type": "loki", "uid": "P8E80F9AEF21F6940" },
-      "targets": [
-        {
-          "expr": "sum(count_over_time({service=\"celery-worker\"} |= \"captcha\"[$__range]))",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "color": { "mode": "thresholds" },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              { "color": "green", "value": null },
-              { "color": "orange", "value": 3 },
-              { "color": "red", "value": 10 }
-            ]
-          },
-          "unit": "none"
-        }
-      },
-      "options": {
-        "colorMode": "background",
-        "graphMode": "none",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": ["lastNotNull"],
-          "fields": "",
-          "values": false
-        },
-        "textMode": "auto"
-      },
-      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 31 },
-      "description": "Количество обнаружений капчи Яндекс на Kinomax"
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "expr": "sum(driver_operations_total{operation=\"restart\"})", "refId": "A" }],
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "orange", "value": 5 }, { "color": "red", "value": 15 }] }, "unit": "none" } },
+      "options": { "colorMode": "background", "graphMode": "none", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
+      "gridPos": { "h": 4, "w": 3, "x": 21, "y": 25 }
     },
     {
       "id": 15,
-      "title": "🔄 Пересозданий драйвера",
-      "type": "stat",
-      "datasource": { "type": "loki", "uid": "P8E80F9AEF21F6940" },
+      "title": "📊 Parsing tasks rate",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
-        {
-          "expr": "sum(count_over_time({service=\"celery-worker\"} |= \"Пересоздаём драйвер\"[$__range]))",
-          "refId": "A"
-        }
+        { "expr": "rate(parsing_tasks_total{status=\"success\"}[5m])", "legendFormat": "✅ {{parser}}", "refId": "A" },
+        { "expr": "rate(parsing_tasks_total{status=\"failed\"}[5m])", "legendFormat": "❌ {{parser}}", "refId": "B" }
       ],
-      "fieldConfig": {
-        "defaults": {
-          "color": { "mode": "thresholds" },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              { "color": "green", "value": null },
-              { "color": "orange", "value": 5 },
-              { "color": "red", "value": 15 }
-            ]
-          },
-          "unit": "none"
-        }
-      },
-      "options": {
-        "colorMode": "background",
-        "graphMode": "none",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": ["lastNotNull"],
-          "fields": "",
-          "values": false
-        },
-        "textMode": "auto"
-      },
-      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 31 },
-      "description": "Количество раз, когда драйвер Selenium пересоздавался (из-за капчи или ошибок)"
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "custom": { "drawStyle": "line", "fillOpacity": 20, "lineInterpolation": "smooth", "lineWidth": 2 }, "unit": "cps" } },
+      "options": { "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "none" } },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 29 }
     },
     {
       "id": 16,
-      "title": "🛑 Закрытий драйвера (close_driver)",
-      "type": "stat",
-      "datasource": { "type": "loki", "uid": "P8E80F9AEF21F6940" },
+      "title": "📊 Parsing duration (p50/p95/p99)",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
-        {
-          "expr": "sum(count_over_time({service=\"celery-worker\"} |= \"close_driver\"[$__range]))",
-          "refId": "A"
-        }
+        { "expr": "histogram_quantile(0.50, sum(rate(parsing_duration_seconds_bucket[5m])) by (le))", "legendFormat": "p50", "refId": "A" },
+        { "expr": "histogram_quantile(0.95, sum(rate(parsing_duration_seconds_bucket[5m])) by (le))", "legendFormat": "p95", "refId": "B" },
+        { "expr": "histogram_quantile(0.99, sum(rate(parsing_duration_seconds_bucket[5m])) by (le))", "legendFormat": "p99", "refId": "C" }
       ],
-      "fieldConfig": {
-        "defaults": {
-          "color": { "mode": "thresholds" },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              { "color": "green", "value": null },
-              { "color": "orange", "value": 10 },
-              { "color": "red", "value": 30 }
-            ]
-          },
-          "unit": "none"
-        }
-      },
-      "options": {
-        "colorMode": "background",
-        "graphMode": "none",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": ["lastNotNull"],
-          "fields": "",
-          "values": false
-        },
-        "textMode": "auto"
-      },
-      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 31 },
-      "description": "Количество закрытий драйвера (нормальное завершение парсинга)"
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "custom": { "drawStyle": "line", "fillOpacity": 20, "lineInterpolation": "smooth", "lineWidth": 2 }, "unit": "s" } },
+      "options": { "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "none" } },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 29 }
     },
     {
       "id": 17,
-      "title": "📈 Активность браузера (ChromeDriver)",
+      "title": "📊 Browser & driver rate",
       "type": "timeseries",
-      "datasource": { "type": "loki", "uid": "P8E80F9AEF21F6940" },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
-        {
-          "expr": "sum by (server_location) (rate({service=\"celery-worker\"} |= \"ChromeDriver\"[5m]))",
-          "legendFormat": "{{server_location}}",
-          "refId": "A"
-        }
+        { "expr": "rate(driver_operations_total[5m])", "legendFormat": "driver: {{operation}}", "refId": "A" },
+        { "expr": "rate(captcha_detections_total[5m])", "legendFormat": "captcha", "refId": "B" }
       ],
-      "fieldConfig": {
-        "defaults": {
-          "color": { "mode": "palette-classic" },
-          "custom": {
-            "drawStyle": "line",
-            "fillOpacity": 20,
-            "lineInterpolation": "smooth",
-            "lineWidth": 2
-          },
-          "unit": "cps"
-        }
-      },
-      "options": {
-        "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true },
-        "tooltip": { "mode": "multi", "sort": "none" }
-      },
-      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 35 }
-    },
-
-    {
-      "id": 9030,
-      "title": "🎬 Парсинг: задачи и результаты",
-      "type": "row",
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 43 }
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "custom": { "drawStyle": "line", "fillOpacity": 20, "lineInterpolation": "smooth", "lineWidth": 2 }, "unit": "cps" } },
+      "options": { "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "none" } },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 37 }
     },
     {
       "id": 18,
-      "title": "✅ KINOMAX — успешных задач",
-      "type": "stat",
-      "datasource": { "type": "loki", "uid": "P8E80F9AEF21F6940" },
+      "title": "📊 Captcha & skipped rate",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
-        {
-          "expr": "sum(count_over_time({service=\"celery-worker\"} |= \"[KINOMAX]\" |= \"Завершена\"[$__range]))",
-          "refId": "A"
-        }
+        { "expr": "rate(captcha_detections_total[5m])", "legendFormat": "captcha", "refId": "A" },
+        { "expr": "rate(parser_items_skipped_total[5m])", "legendFormat": "skipped: {{cinema}}", "refId": "B" }
       ],
-      "fieldConfig": {
-        "defaults": {
-          "color": { "mode": "thresholds" },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              { "color": "red", "value": null },
-              { "color": "green", "value": 1 }
-            ]
-          },
-          "unit": "none"
-        }
-      },
-      "options": {
-        "colorMode": "background",
-        "graphMode": "none",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": ["lastNotNull"],
-          "fields": "",
-          "values": false
-        },
-        "textMode": "auto"
-      },
-      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 44 }
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "custom": { "drawStyle": "line", "fillOpacity": 20, "lineInterpolation": "smooth", "lineWidth": 2 }, "unit": "cps" } },
+      "options": { "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "none" } },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 37 }
+    },
+    {
+      "id": 9004,
+      "title": "🔌 Подключения",
+      "type": "row",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 45 }
     },
     {
       "id": 19,
-      "title": "❌ KINOMAX — ошибок задач",
+      "title": "🟢 Статус подключений",
       "type": "stat",
-      "datasource": { "type": "loki", "uid": "P8E80F9AEF21F6940" },
-      "targets": [
-        {
-          "expr": "sum(count_over_time({service=\"celery-worker\"} |= \"[KINOMAX]\" |= \"Ошибка\"[$__range]))",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "color": { "mode": "thresholds" },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              { "color": "green", "value": null },
-              { "color": "red", "value": 1 }
-            ]
-          },
-          "unit": "none"
-        }
-      },
-      "options": {
-        "colorMode": "background",
-        "graphMode": "none",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": ["lastNotNull"],
-          "fields": "",
-          "values": false
-        },
-        "textMode": "auto"
-      },
-      "gridPos": { "h": 4, "w": 4, "x": 4, "y": 44 }
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "expr": "connection_status", "legendFormat": "{{resource}}", "refId": "A" }],
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 0.5 }] }, "mappings": [{ "type": "value", "options": { "0": { "text": "🔴 DOWN" }, "1": { "text": "✅ UP" } } }], "unit": "none" } },
+      "options": { "colorMode": "background", "graphMode": "none", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
+      "gridPos": { "h": 4, "w": 12, "x": 0, "y": 46 }
     },
     {
       "id": 20,
-      "title": "✅ MALIBU — успешных задач",
-      "type": "stat",
-      "datasource": { "type": "loki", "uid": "P8E80F9AEF21F6940" },
-      "targets": [
-        {
-          "expr": "sum(count_over_time({service=\"celery-worker\"} |= \"[MALIBU]\" |= \"Завершена\"[$__range]))",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "color": { "mode": "thresholds" },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              { "color": "red", "value": null },
-              { "color": "green", "value": 1 }
-            ]
-          },
-          "unit": "none"
-        }
-      },
-      "options": {
-        "colorMode": "background",
-        "graphMode": "none",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": ["lastNotNull"],
-          "fields": "",
-          "values": false
-        },
-        "textMode": "auto"
-      },
-      "gridPos": { "h": 4, "w": 4, "x": 8, "y": 44 }
+      "title": "📊 Connection checks rate",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "expr": "rate(connection_checks_total[5m])", "legendFormat": "{{resource}} {{status}}", "refId": "A" }],
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "custom": { "drawStyle": "line", "fillOpacity": 20, "lineInterpolation": "smooth", "lineWidth": 2 }, "unit": "cps" } },
+      "options": { "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "none" } },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 50 }
+    },
+    {
+      "id": 9005,
+      "title": "📋 Логи парсинга (Loki)",
+      "type": "row",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 58 }
     },
     {
       "id": 21,
-      "title": "❌ MALIBU — ошибок задач",
-      "type": "stat",
+      "title": "🎬 Логи Celery Worker",
+      "type": "logs",
       "datasource": { "type": "loki", "uid": "P8E80F9AEF21F6940" },
-      "targets": [
-        {
-          "expr": "sum(count_over_time({service=\"celery-worker\"} |= \"[MALIBU]\" |= \"Ошибка\"[$__range]))",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "color": { "mode": "thresholds" },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              { "color": "green", "value": null },
-              { "color": "red", "value": 1 }
-            ]
-          },
-          "unit": "none"
-        }
-      },
-      "options": {
-        "colorMode": "background",
-        "graphMode": "none",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": ["lastNotNull"],
-          "fields": "",
-          "values": false
-        },
-        "textMode": "auto"
-      },
-      "gridPos": { "h": 4, "w": 4, "x": 12, "y": 44 }
+      "targets": [{ "expr": "{service=\"celery-worker\"} | json", "refId": "A" }],
+      "options": { "showTime": true, "showLabels": true, "showCommonLabels": false, "wrapLogMessage": true, "prettifyLogsMessage": true, "enableLogDetails": true, "dedupStrategy": "none", "sortOrder": "Descending" },
+      "gridPos": { "h": 10, "w": 12, "x": 0, "y": 59 }
     },
     {
       "id": 22,
-      "title": "🎬 Найдено фильмов (Kinomax)",
-      "type": "stat",
-      "datasource": { "type": "loki", "uid": "P8E80F9AEF21F6940" },
-      "targets": [
-        {
-          "expr": "sum(count_over_time({service=\"celery-worker\"} |= \"[KINOMAX]\" |= \"Найдено фильмов\"[$__range]))",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "color": { "mode": "palette-classic" },
-          "unit": "none"
-        }
-      },
-      "options": {
-        "colorMode": "value",
-        "graphMode": "none",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": ["lastNotNull"],
-          "fields": "",
-          "values": false
-        },
-        "textMode": "auto"
-      },
-      "gridPos": { "h": 4, "w": 4, "x": 16, "y": 44 },
-      "description": "Количество логов о найденных фильмах (не уникальные фильмы, а количество парсингов)"
-    },
-    {
-      "id": 23,
-      "title": "🎬 Найдено фильмов (Malibu)",
-      "type": "stat",
-      "datasource": { "type": "loki", "uid": "P8E80F9AEF21F6940" },
-      "targets": [
-        {
-          "expr": "sum(count_over_time({service=\"celery-worker\"} |= \"Найдено фильмов\" |= \"МАЛИБУ\"[$__range]))",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "color": { "mode": "palette-classic" },
-          "unit": "none"
-        }
-      },
-      "options": {
-        "colorMode": "value",
-        "graphMode": "none",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": ["lastNotNull"],
-          "fields": "",
-          "values": false
-        },
-        "textMode": "auto"
-      },
-      "gridPos": { "h": 4, "w": 4, "x": 20, "y": 44 }
-    },
-    {
-      "id": 24,
-      "title": "📊 Задачи парсинга (KINOMAX) по времени",
-      "type": "timeseries",
-      "datasource": { "type": "loki", "uid": "P8E80F9AEF21F6940" },
-      "targets": [
-        {
-          "expr": "rate({service=\"celery-worker\"} |= \"[KINOMAX]\"[5m])",
-          "legendFormat": "Все логи Kinomax",
-          "refId": "A"
-        },
-        {
-          "expr": "rate({service=\"celery-worker\"} |= \"[KINOMAX]\" |= \"Завершена\"[5m])",
-          "legendFormat": "✅ Завершены",
-          "refId": "B"
-        },
-        {
-          "expr": "rate({service=\"celery-worker\"} |= \"[KINOMAX]\" |= \"Ошибка\"[5m])",
-          "legendFormat": "❌ Ошибки",
-          "refId": "C"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "color": { "mode": "palette-classic" },
-          "custom": {
-            "drawStyle": "line",
-            "fillOpacity": 20,
-            "lineInterpolation": "smooth",
-            "lineWidth": 2
-          },
-          "unit": "cps"
-        }
-      },
-      "options": {
-        "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true },
-        "tooltip": { "mode": "multi", "sort": "none" }
-      },
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 48 }
-    },
-    {
-      "id": 25,
-      "title": "📊 Задачи парсинга (MALIBU) по времени",
-      "type": "timeseries",
-      "datasource": { "type": "loki", "uid": "P8E80F9AEF21F6940" },
-      "targets": [
-        {
-          "expr": "rate({service=\"celery-worker\"} |= \"[MALIBU]\"[5m])",
-          "legendFormat": "Все логи Malibu",
-          "refId": "A"
-        },
-        {
-          "expr": "rate({service=\"celery-worker\"} |= \"[MALIBU]\" |= \"Завершена\"[5m])",
-          "legendFormat": "✅ Завершены",
-          "refId": "B"
-        },
-        {
-          "expr": "rate({service=\"celery-worker\"} |= \"[MALIBU]\" |= \"Ошибка\"[5m])",
-          "legendFormat": "❌ Ошибки",
-          "refId": "C"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "color": { "mode": "palette-classic" },
-          "custom": {
-            "drawStyle": "line",
-            "fillOpacity": 20,
-            "lineInterpolation": "smooth",
-            "lineWidth": 2
-          },
-          "unit": "cps"
-        }
-      },
-      "options": {
-        "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true },
-        "tooltip": { "mode": "multi", "sort": "none" }
-      },
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 48 }
-    },
-    {
-      "id": 26,
-      "title": "📋 ИТОГИ парсинга MALIBU (последние)",
+      "title": "📋 ИТОГИ парсинга",
       "type": "logs",
       "datasource": { "type": "loki", "uid": "P8E80F9AEF21F6940" },
-      "targets": [
-        {
-          "expr": "{service=\"celery-worker\"} |= \"ИТОГИ MALIBU\" | json",
-          "refId": "A"
-        }
-      ],
-      "options": {
-        "showTime": true,
-        "showLabels": true,
-        "showCommonLabels": false,
-        "wrapLogMessage": true,
-        "prettifyLogsMessage": true,
-        "enableLogDetails": true,
-        "dedupStrategy": "none",
-        "sortOrder": "Descending"
-      },
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 56 }
-    },
-    {
-      "id": 27,
-      "title": "📋 Сохранённые сеансы",
-      "type": "logs",
-      "datasource": { "type": "loki", "uid": "P8E80F9AEF21F6940" },
-      "targets": [
-        {
-          "expr": "{service=\"celery-worker\"} |= \"сеансов:\" | json",
-          "refId": "A"
-        }
-      ],
-      "options": {
-        "showTime": true,
-        "showLabels": true,
-        "showCommonLabels": false,
-        "wrapLogMessage": true,
-        "prettifyLogsMessage": true,
-        "enableLogDetails": true,
-        "dedupStrategy": "none",
-        "sortOrder": "Descending"
-      },
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 56 }
-    },
-
-    {
-      "id": 9040,
-      "title": "⚙️ Celery Worker — здоровье и задачи",
-      "type": "row",
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 64 }
-    },
-    {
-      "id": 28,
-      "title": "🧑‍🔧 Celery Worker (Frankfurt) — активность",
-      "type": "stat",
-      "datasource": { "type": "loki", "uid": "P8E80F9AEF21F6940" },
-      "targets": [
-        {
-          "expr": "count_over_time({server_location=\"frankfurt\", service=\"celery-worker\"}[30m])",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "color": { "mode": "thresholds" },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              { "color": "red", "value": null },
-              { "color": "green", "value": 1 }
-            ]
-          },
-          "mappings": [
-            {
-              "type": "value",
-              "options": {
-                "0": { "text": "🔴 НЕ АКТИВЕН", "color": "red" }
-              }
-            }
-          ],
-          "unit": "none"
-        }
-      },
-      "options": {
-        "colorMode": "background",
-        "graphMode": "none",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": ["lastNotNull"],
-          "fields": "",
-          "values": false
-        },
-        "textMode": "auto"
-      },
-      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 65 }
-    },
-    {
-      "id": 29,
-      "title": "🧑‍🔧 Celery Worker (Москва) — активность",
-      "type": "stat",
-      "datasource": { "type": "loki", "uid": "P8E80F9AEF21F6940" },
-      "targets": [
-        {
-          "expr": "count_over_time({server_location=\"moscow\", service=\"celery-worker\"}[30m])",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "color": { "mode": "thresholds" },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              { "color": "red", "value": null },
-              { "color": "green", "value": 1 }
-            ]
-          },
-          "mappings": [
-            {
-              "type": "value",
-              "options": {
-                "0": { "text": "🔴 НЕ АКТИВЕН", "color": "red" }
-              }
-            }
-          ],
-          "unit": "none"
-        }
-      },
-      "options": {
-        "colorMode": "background",
-        "graphMode": "none",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": ["lastNotNull"],
-          "fields": "",
-          "values": false
-        },
-        "textMode": "auto"
-      },
-      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 65 }
-    },
-    {
-      "id": 30,
-      "title": "📤 Задач отправлено (Celery)",
-      "type": "stat",
-      "datasource": { "type": "loki", "uid": "P8E80F9AEF21F6940" },
-      "targets": [
-        {
-          "expr": "sum(count_over_time({service=\"celery-worker\"} |= \"Задачи отправлены\"[$__range]))",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "color": { "mode": "palette-classic" },
-          "unit": "none"
-        }
-      },
-      "options": {
-        "colorMode": "value",
-        "graphMode": "none",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": ["lastNotNull"],
-          "fields": "",
-          "values": false
-        },
-        "textMode": "auto"
-      },
-      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 65 }
-    },
-    {
-      "id": 31,
-      "title": "🔄 Подключений проверено",
-      "type": "stat",
-      "datasource": { "type": "loki", "uid": "P8E80F9AEF21F6940" },
-      "targets": [
-        {
-          "expr": "sum(count_over_time({service=\"celery-worker\"} |= \"Проверка подключения\"[$__range]))",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "color": { "mode": "palette-classic" },
-          "unit": "none"
-        }
-      },
-      "options": {
-        "colorMode": "value",
-        "graphMode": "none",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": ["lastNotNull"],
-          "fields": "",
-          "values": false
-        },
-        "textMode": "auto"
-      },
-      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 65 }
-    },
-    {
-      "id": 32,
-      "title": "📋 Celery: проверка подключений",
-      "type": "logs",
-      "datasource": { "type": "loki", "uid": "P8E80F9AEF21F6940" },
-      "targets": [
-        {
-          "expr": "{service=\"celery-worker\"} |= \"Проверка подключения\" | json",
-          "refId": "A"
-        }
-      ],
-      "options": {
-        "showTime": true,
-        "showLabels": true,
-        "showCommonLabels": false,
-        "wrapLogMessage": true,
-        "prettifyLogsMessage": true,
-        "enableLogDetails": true,
-        "dedupStrategy": "none",
-        "sortOrder": "Descending"
-      },
-      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 69 }
-    },
-    {
-      "id": 33,
-      "title": "💬 Все логи бота (Telegram Bot)",
-      "type": "logs",
-      "datasource": { "type": "loki", "uid": "P8E80F9AEF21F6940" },
-      "targets": [
-        {
-          "expr": "{service=\"telegram-bot\"} | json",
-          "refId": "A"
-        }
-      ],
-      "options": {
-        "showTime": true,
-        "showLabels": true,
-        "showCommonLabels": false,
-        "wrapLogMessage": true,
-        "prettifyLogsMessage": true,
-        "enableLogDetails": true,
-        "dedupStrategy": "none",
-        "sortOrder": "Descending"
-      },
-      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 77 }
+      "targets": [{ "expr": "{service=\"celery-worker\"} |= \"ИТОГИ\" | json", "refId": "A" }],
+      "options": { "showTime": true, "showLabels": true, "showCommonLabels": false, "wrapLogMessage": true, "prettifyLogsMessage": true, "enableLogDetails": true, "dedupStrategy": "none", "sortOrder": "Descending" },
+      "gridPos": { "h": 10, "w": 12, "x": 12, "y": 59 }
     }
   ]
 }

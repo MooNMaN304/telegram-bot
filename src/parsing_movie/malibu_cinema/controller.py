@@ -13,6 +13,7 @@ from src.parsing_movie.abstract.controller import AbstractController
 
 from src.parsing_movie.malibu_cinema.malibu_settings import malibu_settings
 from src.utils.logger import get_logger
+from src.utils.metrics import movies_found, sessions_found, parser_items_skipped
 
 logger = get_logger(__name__)
 
@@ -54,6 +55,7 @@ class MalibuController(AbstractController):
             return
 
         logger.info(f"Найдено фильмов: {len(films)}")
+        movies_found.labels(cinema="malibu").inc(len(films))
 
         # 📊 Счётчики статистики
         total_movies = 0
@@ -70,6 +72,7 @@ class MalibuController(AbstractController):
 
             if not title:
                 skipped_movies += 1
+                parser_items_skipped.labels(cinema="malibu").inc()
                 logger.warning(f"✗ Пропуск фильма без названия: {film_data}")
                 continue
 
@@ -153,6 +156,7 @@ class MalibuController(AbstractController):
     def update_movie_sessions(self, cinema_movie: CinemaMovieModel, cinema_id: int) -> int:
         """
         Парсинг и сохранение сеансов для фильма в кинотеатре.
+        Использует parse_sessions_with_stop для раннего выхода при пустых днях.
         
         Returns:
             Количество сохранённых сеансов
@@ -165,31 +169,28 @@ class MalibuController(AbstractController):
             )
             return 0
 
-        urls = self.session_parser.form_urls(movie_url)
+        sessions = self.session_parser.parse_sessions_with_stop(
+            movie_url=movie_url,
+            movie_id=cinema_movie.movie_id,
+            cinema_id=cinema_id,
+        )
         sessions_saved = 0
 
-        for url in urls:
-            logger.info(f"  Парсинг сеансов по URL: {url}")
-            sessions = self.session_parser.parse_sessions(
-                url=url,
-                movie_id=cinema_movie.movie_id,
-                cinema_id=cinema_id,
+        if not sessions:
+            logger.debug(f"    Сеансы не найдены для {movie_url}")
+
+        for session in sessions:
+            self.session_repo.get_or_create(
+                defaults={
+                    "session_id": session.session_id,  # может быть None
+                    "cinema_id": session.cinema_id,
+                    "movie_id": session.movie_id,
+                    "date": session.date,
+                }
             )
+            sessions_saved += 1
 
-            if not sessions:
-                logger.debug(f"    Сеансы не найдены по URL: {url}")
-
-            for session in sessions:
-                self.session_repo.get_or_create(
-                    defaults={
-                        "session_id": session.session_id,  # может быть None
-                        "cinema_id": session.cinema_id,
-                        "movie_id": session.movie_id,
-                        "date": session.date,
-                    }
-                )
-                sessions_saved += 1
-
+        sessions_found.labels(cinema="malibu").inc(sessions_saved)
         logger.info(
             f"🎬 {cinema_movie.movie.name} | сеансов: {sessions_saved}"
         )

@@ -41,22 +41,37 @@ class SessionRepository:
     def get_or_create(self, defaults: dict):
         """
         Получить или создать сеанс.
-        Уникальность определяется по cinema_id + movie_id + date
+        
+        Уникальность определяется по (session_id, cinema_id) — как в UniqueConstraint.
+        Если session_id не указан (None), fallback на (cinema_id, movie_id, date).
         """
 
+        session_id = defaults.get("session_id")
         cinema_id = defaults.get("cinema_id")
-        movie_id = defaults.get("movie_id")
-        date = defaults.get("date")
 
-        existing = (
-            self.db.query(self.session_model)
-            .filter(
-                self.session_model.cinema_id == cinema_id,
-                self.session_model.movie_id == movie_id,
-                self.session_model.date == date,
+        if session_id is not None:
+            # Основной путь: проверка по UniqueConstraint (session_id, cinema_id)
+            existing = (
+                self.db.query(self.session_model)
+                .filter(
+                    self.session_model.session_id == session_id,
+                    self.session_model.cinema_id == cinema_id,
+                )
+                .first()
             )
-            .first()
-        )
+        else:
+            # Fallback: если session_id == None (NULL в SQL не равен NULL)
+            movie_id = defaults.get("movie_id")
+            date = defaults.get("date")
+            existing = (
+                self.db.query(self.session_model)
+                .filter(
+                    self.session_model.cinema_id == cinema_id,
+                    self.session_model.movie_id == movie_id,
+                    self.session_model.date == date,
+                )
+                .first()
+            )
 
         if existing:
             return existing, False

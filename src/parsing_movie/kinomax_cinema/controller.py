@@ -16,6 +16,7 @@ from src.parsing_movie.kinomax_cinema.kinomax_settings import (
 )
 from src.db.cinema_movie.cinema_movie_repository import CinemaMovieRepository
 from src.utils.logger import get_logger
+from src.utils.metrics import movies_found, sessions_found, driver_operations
 
 
 logger = get_logger(__name__)
@@ -115,7 +116,9 @@ class KinomaxController(AbstractController):
                 if is_captcha_page(page_html):
                     logger.warning("🚨 Попытка %d: Обнаружена капча. Пересоздаём драйвер...", attempt)
                     self.main_parser.close_driver()
+                    driver_operations.labels(operation="close").inc()
                     self.main_parser._setup_driver()
+                    driver_operations.labels(operation="restart").inc()
                     self.session_parser.driver = self.main_parser.driver
                     import time
                     time.sleep(wait_before_retry)
@@ -134,6 +137,7 @@ class KinomaxController(AbstractController):
                     return
 
                 logger.info("Найдено фильмов: %d", len(films))
+                movies_found.labels(cinema="kinomax").inc(len(films))
 
                 # 5️⃣ Обрабатываем каждый фильм
                 for index, film_data in enumerate(films, 1):
@@ -156,7 +160,9 @@ class KinomaxController(AbstractController):
                     logger.info("Пересоздаём драйвер и пробуем снова...")
                     try:
                         self.main_parser.close_driver()
+                        driver_operations.labels(operation="close").inc()
                         self.main_parser._setup_driver()
+                        driver_operations.labels(operation="restart").inc()
                         self.session_parser.driver = self.main_parser.driver
                     except Exception:
                         pass
@@ -278,6 +284,7 @@ class KinomaxController(AbstractController):
                 }
             )
 
+        sessions_found.labels(cinema="kinomax").inc(len(sessions))
         logger.info(
             f"Сохранено {len(sessions)} сеансов: {movie_title}"
         )
