@@ -80,9 +80,11 @@ services:
 networks:
   frankfurt_network:
     driver: bridge
-  # Подключаем внешнюю сеть observability для доступа Prometheus к метрикам бота
+  # Сеть observability — если уже существует (от observability стека), переиспользуется.
+  # Если нет — создаётся автоматически. Больше не external, чтобы CI/CD не падал.
   observability:
-    external: true
+    driver: bridge
+    name: observability
 
 volumes:
   postgres_data:
