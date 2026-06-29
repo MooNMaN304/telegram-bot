@@ -53,13 +53,50 @@ services:
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
       - GF_AUTH_ANONYMOUS_ENABLED=true
       - GF_AUTH_ANONYMOUS_ORG_ROLE=Viewer
-      - GF_INSTALL_PLUGINS=grafana-piechart-panel
+      - GF_INSTALL_PLUGINS=grafana-piechart-panel,grafana-timeline-panel
       # Автоматическая перезагрузка дашбордов при изменении файлов на диске
       - GF_PROVISIONING_DASHBOARDS_AUTO_RELOAD=true
     volumes:
       - grafana_storage:/var/lib/grafana
       - ./observability/grafana/datasources:/etc/grafana/provisioning/datasources
       - ./observability/grafana/dashboards:/etc/grafana/provisioning/dashboards
+    networks:
+      - observability
+    restart: unless-stopped
+
+  # ============================================================
+  # 🖥 Мониторинг сервера (CPU, RAM, диск)
+  # ============================================================
+  node_exporter:
+    image: prom/node-exporter:v1.8.0
+    container_name: node_exporter
+    command:
+      - "--path.rootfs=/host"
+      - "--path.procfs=/host/proc"
+      - "--path.sysfs=/host/sys"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/host:ro
+    networks:
+      - observability
+    restart: unless-stopped
+
+  # ============================================================
+  # 📦 Мониторинг Docker контейнеров
+  # ============================================================
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.49.1
+    container_name: cadvisor
+    privileged: true
+    devices:
+      - /dev/kmsg:/dev/kmsg
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker:/var/lib/docker:ro
+      - /dev/disk:/dev/disk:ro
     networks:
       - observability
     restart: unless-stopped

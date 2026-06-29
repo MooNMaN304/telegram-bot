@@ -7,6 +7,10 @@ from src.db.sessions.session_model import SessionModel
 from src.db.cinema_movie.cinema_movie_model import CinemaMovieModel
 from sqlalchemy import func
 
+from src.utils.logger import get_logger
+
+logger = get_logger(__name__)
+
 
 class MovieRepository:
     def __init__(
@@ -97,7 +101,7 @@ class MovieRepository:
                  - должен содержать additional_data (инфо из kinopoisk)
         :return: объект MovieModel
         """
-        # Проверяем есть ли уже такой фильм (по названию)
+        # 1️⃣ Проверяем есть ли уже такой фильм (по названию)
         movie = self.db.query(self.movie_model).filter(
             self.movie_model.name == name
         ).first()
@@ -119,7 +123,39 @@ class MovieRepository:
             
             return movie
 
-        # Создаём новый фильм
+        # 2️⃣ Если не нашли по названию — проверяем по kinopoisk_id
+        #    (избегаем UniqueViolation, когда фильм уже есть, но с другим названием)
+        kinopoisk_id = defaults.get("kinopoisk_id") if defaults else None
+        if kinopoisk_id is not None:
+            movie_by_kp = self.db.query(self.movie_model).filter(
+                self.movie_model.kinopoisk_id == kinopoisk_id
+            ).first()
+
+            if movie_by_kp:
+                # Фильм уже существует с другим названием — обновляем название
+                # и добавляем связь с кинотеатром
+                logger.info(
+                    "Фильм с kinopoisk_id=%s найден под названием '%s', "
+                    "обновляем на '%s'",
+                    kinopoisk_id, movie_by_kp.name, name,
+                )
+                self.update(movie_by_kp.id, {"name": name})
+
+                # Проверяем связь с кинотеатром
+                existing_relation = (
+                    self.db.query(CinemaMovieModel)
+                    .filter(
+                        CinemaMovieModel.movie_id == movie_by_kp.id,
+                        CinemaMovieModel.cinema_id == cinema_id
+                    )
+                    .first()
+                )
+                if not existing_relation:
+                    self._create_cinema_movie_relation(movie_by_kp.id, cinema_id)
+
+                return movie_by_kp
+
+        # 3️⃣ Создаём новый фильм
         create_data = {"name": name}
         if defaults:
             create_data.update(defaults)

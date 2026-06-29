@@ -1,12 +1,15 @@
 from datetime import datetime, timedelta
 from typing import List
 
+from selenium.common.exceptions import WebDriverException
+
 from src.base.base_parser import BaseParser
 from src.parsing_movie.kinomax_cinema.kinomax_settings import kinomax_settings
 from src.parsing_movie.kinomax_cinema.html_utils import extract_order_links_html
 from src.utils.gigachat_request import GigaChatScheduleParser
 from src.db.sessions.session_schema import SessionSchema
 from src.utils.logger import get_logger
+from src.utils.metrics import driver_operations
 
 logger = get_logger(__name__)
 
@@ -90,9 +93,26 @@ class KinomaxSessionParser(BaseParser):
         movie_db_id: int | None,
         cinema_id: int | None,
     ) -> List[SessionSchema]:
+        return self._process_single_day_with_retry(
+            url, schedule_date, movie_db_id, cinema_id, retry_count=0,
+        )
+
+    def _process_single_day_with_retry(
+        self,
+        url: str,
+        schedule_date: str,
+        movie_db_id: int | None,
+        cinema_id: int | None,
+        retry_count: int = 0,
+    ) -> List[SessionSchema]:
+        max_retries = 1  # пересоздаём драйвер максимум 1 раз за день
         try:
             logger.info(f"Открытие страницы сеансов: {url}")
             self.navigate(url)
+
+            if not self.driver:
+                logger.warning("Драйвер не инициализирован")
+                return []
 
             page_html = self.driver.page_source
             html_content = extract_order_links_html(page_html)
@@ -119,6 +139,33 @@ class KinomaxSessionParser(BaseParser):
                 movie_db_id,
                 cinema_id,
             )
+        except WebDriverException as e:
+            error_msg = str(e).lower()
+            is_session_lost = (
+                "couldn't access session" in error_msg
+                or "session not created" in error_msg
+                or "timeout" in error_msg
+            )
+            if is_session_lost and retry_count < max_retries:
+                logger.warning(
+                    "⚠️ Сессия WebDriver потеряна для %s (%s). "
+                    "Пересоздаём драйвер и пробуем снова (попытка %d)...",
+                    schedule_date, url, retry_count + 1,
+                )
+                self.close_driver()
+                driver_operations.labels(operation="close").inc()
+                import time
+                time.sleep(2)
+                self._setup_driver()
+                driver_operations.labels(operation="restart").inc()
+                return self._process_single_day_with_retry(
+                    url, schedule_date, movie_db_id, cinema_id,
+                    retry_count=retry_count + 1,
+                )
+            logger.exception(
+                "❌ Ошибка WebDriver для %s (%s): %s", schedule_date, url, e,
+            )
+            return []
         except Exception as e:
             logger.exception(f"Ошибка обработки дня {schedule_date} ({url}): {e}")
             return []
