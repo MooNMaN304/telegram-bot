@@ -5,7 +5,7 @@ from typing import List, Optional
 class SessionTime(BaseModel):
     """Одиночный сеанс с временем и ценой"""
     time: str  # "16:25"
-    price: Optional[int] = None  # 330
+    price: Optional[str] = None  # "750₽" — GigaChat возвращает строкой
     format: Optional[str] = None  # "2D", "3D" и т.д.
 
 

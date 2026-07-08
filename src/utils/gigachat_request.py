@@ -28,7 +28,7 @@ class GigaChatScheduleParser:
         credentials: str,
         response_schema: Type[BaseModel],
         model: str = "GigaChat",
-        max_retries: int = 3,
+        max_retries: int = 5,
         temperature: float = 0.2,
         verify_ssl: bool = False,
     ):
@@ -150,7 +150,12 @@ class GigaChatScheduleParser:
                 if attempt > 1:
                     messages.append({
                         "role": "user",
-                        "content": "Исправь JSON. Верни только валидный JSON."
+                        "content": (
+                            "Исправь JSON. Верни ТОЛЬКО валидный JSON без объяснений.\n"
+                            "ВАЖНО: цена (price) должна быть ЧИСЛОМ, без символа ₽ и без слова 'от'.\n"
+                            "Пример: {\"time\": \"16:25\", \"price\": 750, \"format\": \"2D\"}\n"
+                            "Никаких кавычек вокруг price, никаких 'от', никаких ₽."
+                        )
                     })
 
                 try:
