@@ -9,7 +9,9 @@ class Settings(BaseSettings):
     KINOPOISK_API_KEY: str
     # KINOPOISK_BASE_URL: str
     # DEEPSEEK_API_KEY: str
-    GIGACHAT_API_KEY: str
+    GIGACHAT_API_KEY: str = ""
+    OPENROUTER_API_KEY: str = ""
+    OPENROUTER_MODEL: str = "tencent/hy3-preview"
     REMOTE_SELENIUM_URL: str
     
     CELERY_BROKER_URL: str

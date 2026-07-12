@@ -34,7 +34,7 @@ class MaliBuSettings(BaseSettings):
     # Опции парсинга сеансов
     SESSION_PARSING_OPTIONS: Dict = {
         "max_empty_days": 2,  # если 2 дня подряд пусто - останавливаемся
-        "days_to_check": 5,  # сколько дней вперёд проверяем
+        "days_to_check": 3,  # сколько дней вперёд проверяем
     }
 
     # Селекторы для html_utils (чистый парсинг без Selenium)

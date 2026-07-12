@@ -264,7 +264,7 @@ class KinomaxController(AbstractController):
             movie_id=movie_id_kinomax,
             movie_db_id=movie_db_id,
             cinema_id=cinema_id,
-            days=5,
+            days=3,
         )
 
         if not sessions:

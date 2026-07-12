@@ -188,9 +188,8 @@ class KinomaxSessionParser(BaseParser):
                     f"{schedule_date} {s.time}",
                     "%Y-%m-%d %H:%M",
                 )
-                session_id = f"kinomax_{movie_db_id}_{dt.strftime('%Y%m%d_%H%M')}"
                 session = SessionSchema(
-                    session_id=session_id,
+                    session_id=None,
                     date=dt,
                     movie_id=movie_db_id,
                     cinema_id=cinema_id,

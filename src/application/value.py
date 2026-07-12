@@ -5,7 +5,10 @@ Previously, a module-level `session = get_session()` was used, which caused
 stale sessions in long-running Celery workers. Now every call gets a fresh session.
 """
 
+from src.utils.logger import get_logger
 from src.db.database import get_session
+
+logger = get_logger(__name__)
 
 from src.db.movies.movie_repository import MovieRepository
 from src.db.movies.movie_model import MovieModel
@@ -24,6 +27,7 @@ from src.db.movies.movie_service import MovieService
 from src.utils.kino_api.client import KinoAPIClient
 from src.utils.movie_detail_parser import MovieDetailParser
 from src.utils.gigachat_request import GigaChatScheduleParser
+from src.utils.openrouter_request import OpenRouterScheduleParser
 
 from src.parsing_movie.malibu_cinema.session_extractor import MalibuSessionExtractor
 from src.parsing_movie.malibu_cinema.malibu_settings import malibu_settings
@@ -218,18 +222,30 @@ def build_kinomax_controller(driver=None):
     # Это решает проблему таймаута: main_parser парсит все фильмы (~106 сек),
     # а session_parser получает свежий driver для сеансов.
 
-    gigachat_parser = GigaChatScheduleParser(
-        credentials=_resolve_gigachat_credentials(),
-        response_schema=GigaChatScheduleResponse,
-        model="GigaChat",
-        temperature=0.1,
-        max_retries=3,
-    )
+    # Используем OpenRouter если ключ задан, иначе GigaChat
+    if settings.OPENROUTER_API_KEY:
+        logger.info("🤖 Используем OpenRouter (model=%s)", settings.OPENROUTER_MODEL)
+        ai_parser = OpenRouterScheduleParser(
+            api_key=settings.OPENROUTER_API_KEY,
+            response_schema=GigaChatScheduleResponse,
+            model=settings.OPENROUTER_MODEL,
+            temperature=0.1,
+            max_retries=5,
+        )
+    else:
+        logger.info("🤖 Используем GigaChat (OPENROUTER_API_KEY не задан)")
+        ai_parser = GigaChatScheduleParser(
+            credentials=_resolve_gigachat_credentials(),
+            response_schema=GigaChatScheduleResponse,
+            model="GigaChat",
+            temperature=0.1,
+            max_retries=5,
+        )
 
     from src.parsing_movie.kinomax_cinema.session_parser import KinomaxSessionParser
     session_parser = KinomaxSessionParser(
         driver=None,  # отдельный driver — свой собственный
-        gigachat_parser=gigachat_parser,
+        gigachat_parser=ai_parser,
         wait_time=settings.WAIT_PAGE_LOAD,
     )
 
