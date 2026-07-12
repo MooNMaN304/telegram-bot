@@ -51,11 +51,8 @@ services:
       - .:/src
     networks:
       - moscow_network
-      - observability
     restart: unless-stopped
 
 networks:
   moscow_network:
     driver: bridge
-  observability:
-    external: true
