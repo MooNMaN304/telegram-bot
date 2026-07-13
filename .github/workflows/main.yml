@@ -62,10 +62,18 @@ jobs:
             git clean -fd
             git pull origin master
 
+            # Free up disk space before build (предотвращает ошибки "disk is full")
+            echo "[1.5/5] Cleaning up Docker cache..."
+            docker system prune -af --filter "until=24h" 2>/dev/null || true
+
             # Fix permissions
             echo "[2/5] Fixing permissions..."
             chmod +x entrypoint.bot.sh
             chmod +x scripts/*.sh 2>/dev/null || true
+
+            # Ensure observability network exists (для node_exporter/cadvisor)
+            echo "[2.5/5] Ensuring observability network exists..."
+            docker network create observability 2>/dev/null || true
 
             # Build and restart bot
             echo "[3/5] Building and restarting bot..."
@@ -128,19 +136,34 @@ jobs:
             echo "ADMIN_TELEGRAM_ID=${ADMIN_TELEGRAM_ID}" >> .env
             # =====================================================================
 
+            # Ensure observability network exists (для связи с Prometheus)
+            echo "[2.5/4] Ensuring observability network exists..."
+            docker network create observability 2>/dev/null || true
+
             # Build and restart celery worker
             echo "[3/4] Building and restarting celery worker..."
             docker compose -f docker-compose.moscow.yml up -d --build
 
-            # Start Promtail for log collection
-            echo "[4/4] Starting Promtail for log shipping..."
-            docker stop promtail-moscow 2>/dev/null || true
-            docker rm promtail-moscow 2>/dev/null || true
-            docker run -d --name promtail-moscow \
-              -v /var/lib/docker/containers:/var/lib/docker/containers:ro \
-              -v /var/run/docker.sock:/var/run/docker.sock \
-              -v $(pwd)/observability/promtail/promtail-moscow.yaml:/etc/promtail/config.yml \
-              --network host \
-              grafana/promtail:2.9.2 -config.file=/etc/promtail/config.yml
+            # Start observability stack (Prometheus, Grafana, Loki, etc.)
+            echo "[3.5/4] Starting observability stack..."
+            docker compose -f docker-compose.observability.yml up -d
+
+            # Reload Grafana dashboards
+            echo "[3.6/4] Reloading Grafana dashboards..."
+            docker compose -f docker-compose.observability.yml restart grafana 2>/dev/null || true
+            sleep 2
+            curl -s -X POST http://localhost:3000/api/admin/provisioning/dashboards/reload \
+              --connect-timeout 5 || echo "Grafana API reload skipped (non-critical)"
+
+            # Start Promtail for log collection (если observability.yml не запустил)
+            echo "[4/4] Ensuring Promtail for log shipping..."
+            if ! docker ps --format '{{.Names}}' | grep -q promtail; then
+              docker run -d --name promtail-moscow \
+                -v /var/lib/docker/containers:/var/lib/docker/containers:ro \
+                -v /var/run/docker.sock:/var/run/docker.sock \
+                -v $(pwd)/observability/promtail/promtail-moscow.yaml:/etc/promtail/config.yml \
+                --network host \
+                grafana/promtail:2.9.2 -config.file=/etc/promtail/config.yml
+            fi
 
             echo "=== Moscow deployment complete! ==="
