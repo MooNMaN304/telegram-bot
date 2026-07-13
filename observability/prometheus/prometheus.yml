@@ -35,28 +35,24 @@ scrape_configs:
           server_location: "frankfurt"
 
   # ===== MOSCOW SERVER =====
-  - job_name: "telegram-bot-moscow"
-    static_configs:
-      - targets: ["telegram_bot_app_moscow:8000"]
-        labels:
-          service: "telegram-bot"
-          server_location: "moscow"
-
+  # Celery worker из docker-compose.moscow.yml, подключен к observability сети
   - job_name: "celery-worker-moscow"
     static_configs:
-      - targets: ["celery_worker_moscow:8001"]
+      - targets: ["celery_worker:8001"]
         labels:
           service: "celery-worker"
           server_location: "moscow"
 
+  # node_exporter и cadvisor из docker-compose.observability.yml
+  # на московском сервере — те же имена контейнеров, что и на франкфуртском
   - job_name: "node-moscow"
     static_configs:
-      - targets: ["node_exporter_moscow:9100"]
+      - targets: ["node_exporter:9100"]
         labels:
           server_location: "moscow"
 
   - job_name: "cadvisor-moscow"
     static_configs:
-      - targets: ["cadvisor_moscow:8080"]
+      - targets: ["cadvisor:8080"]
         labels:
           server_location: "moscow"

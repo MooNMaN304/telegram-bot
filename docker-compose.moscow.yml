@@ -51,8 +51,12 @@ services:
       - .:/src
     networks:
       - moscow_network
+      - observability
     restart: unless-stopped
 
 networks:
   moscow_network:
     driver: bridge
+  # Подключаемся к observability, чтобы Prometheus мог собирать метрики celery_worker
+  observability:
+    external: true
