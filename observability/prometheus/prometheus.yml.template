@@ -1,0 +1,61 @@
+# Prometheus config for scraping bot, celery, node, and docker metrics
+# ⚠️  This is a TEMPLATE — ${MOSCOW_SERVER_IP} is substituted via envsubst on startup.
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  # ============================================================
+  #  🇩🇪 FRANKFURT
+  # ============================================================
+
+  # Telegram Bot — метрики :8000/metrics
+  - job_name: "telegram-bot"
+    static_configs:
+      - targets: ["telegram_bot_app:8000"]
+        labels:
+          service: "telegram-bot"
+          server_location: "frankfurt"
+
+  # 🖥 Метрики сервера Frankfurt (CPU, RAM, диск)
+  - job_name: "node"
+    static_configs:
+      - targets: ["node_exporter:9100"]
+        labels:
+          server_location: "frankfurt"
+
+  # 📦 Метрики Docker контейнеров Frankfurt
+  - job_name: "cadvisor"
+    static_configs:
+      - targets: ["cadvisor:8080"]
+        labels:
+          server_location: "frankfurt"
+
+  # ============================================================
+  #  🇷🇺 MOSCOW
+  # ============================================================
+
+  # Celery worker — метрики :8001/metrics (exposed on Moscow public IP)
+  - job_name: "celery-worker-moscow"
+    scrape_interval: 30s
+    static_configs:
+      - targets: ["${MOSCOW_SERVER_IP}:8001"]
+        labels:
+          service: "celery-worker"
+          server_location: "moscow"
+
+  # 🖥 Метрики сервера Moscow (CPU, RAM, диск)
+  - job_name: "node-moscow"
+    scrape_interval: 30s
+    static_configs:
+      - targets: ["${MOSCOW_SERVER_IP}:9100"]
+        labels:
+          server_location: "moscow"
+
+  # 📦 Метрики Docker контейнеров Moscow
+  - job_name: "cadvisor-moscow"
+    scrape_interval: 30s
+    static_configs:
+      - targets: ["${MOSCOW_SERVER_IP}:8080"]
+        labels:
+          server_location: "moscow"

@@ -2,24 +2,40 @@
   "title": "Telegram Bot — полный мониторинг",
   "uid": "telegram-bot-full-monitoring",
   "schemaVersion": 39,
-  "version": 3,
+  "version": 4,
   "refresh": "15s",
   "time": { "from": "now-6h", "to": "now" },
   "timepicker": {},
   "tags": ["telegram-bot", "parsing", "prometheus"],
+  "templating": {
+    "list": [
+      {
+        "name": "server_location",
+        "label": "Сервер",
+        "type": "query",
+        "query": "label_values(up, server_location)",
+        "current": { "text": "All", "value": "$__all" },
+        "includeAll": true,
+        "allValue": ".*",
+        "multi": false,
+        "refresh": 2,
+        "sort": 1
+      }
+    ]
+  },
   "panels": [
     {
       "id": 9001,
-      "title": "🖥 Состояние серверов и сервисов",
+      "title": "🖥 Состояние сервисов",
       "type": "row",
       "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 }
     },
     {
       "id": 1,
-      "title": "🔥 Bot Frankfurt (live)",
+      "title": "🇩🇪 Bot Frankfurt (live)",
       "type": "stat",
       "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "targets": [{ "expr": "up{job=\"telegram-bot\"}", "refId": "A" }],
+      "targets": [{ "expr": "up{job=\"telegram-bot\", server_location=\"frankfurt\"}", "refId": "A" }],
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "thresholds" },
@@ -32,6 +48,23 @@
       "gridPos": { "h": 4, "w": 4, "x": 0, "y": 1 }
     },
     {
+      "id": 41,
+      "title": "🇷🇺 Celery Moscow (live)",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "expr": "up{job=\"celery-worker-moscow\", server_location=\"moscow\"}", "refId": "A" }],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 0.5 }] },
+          "mappings": [{ "type": "value", "options": { "0": { "text": "🔴 DOWN", "color": "red" }, "1": { "text": "✅ UP", "color": "green" } } }],
+          "unit": "none"
+        }
+      },
+      "options": { "colorMode": "background", "graphMode": "none", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
+      "gridPos": { "h": 4, "w": 4, "x": 4, "y": 1 }
+    },
+    {
       "id": 2,
       "title": "📊 Bot request rate",
       "type": "timeseries",
@@ -39,7 +72,7 @@
       "targets": [{ "expr": "rate(bot_requests_total[5m])", "legendFormat": "All", "refId": "A" }],
       "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "custom": { "drawStyle": "line", "fillOpacity": 20, "lineInterpolation": "smooth", "lineWidth": 2 }, "unit": "reqps" } },
       "options": { "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "none" } },
-      "gridPos": { "h": 4, "w": 4, "x": 4, "y": 1 }
+      "gridPos": { "h": 4, "w": 8, "x": 8, "y": 1 }
     },
     {
       "id": 3,
@@ -55,7 +88,20 @@
         }
       },
       "options": { "colorMode": "background", "graphMode": "none", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
-      "gridPos": { "h": 4, "w": 4, "x": 8, "y": 1 }
+      "gridPos": { "h": 4, "w": 4, "x": 16, "y": 1 }
+    },
+    {
+      "id": 42,
+      "title": "🔄 Celery tasks rate (Moscow)",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "expr": "rate(parsing_tasks_total{status=\"success\", server_location=\"moscow\"}[5m])", "legendFormat": "✅ success", "refId": "A" },
+        { "expr": "rate(parsing_tasks_total{status=\"failed\", server_location=\"moscow\"}[5m])", "legendFormat": "❌ failed", "refId": "B" }
+      ],
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "custom": { "drawStyle": "line", "fillOpacity": 20, "lineInterpolation": "smooth", "lineWidth": 2 }, "unit": "cps" } },
+      "options": { "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "none" } },
+      "gridPos": { "h": 4, "w": 4, "x": 20, "y": 1 }
     },
     {
       "id": 4,
@@ -265,7 +311,7 @@
     },
     {
       "id": 21,
-      "title": "🎬 Логи Celery Worker",
+      "title": "🎬 Логи Celery Worker (Moscow)",
       "type": "logs",
       "datasource": { "type": "loki", "uid": "P8E80F9AEF21F6940" },
       "targets": [{ "expr": "{service=\"celery-worker\"} | json", "refId": "A" }],
@@ -283,16 +329,16 @@
     },
     {
       "id": 9006,
-      "title": "🖥 Сервер (node_exporter + cAdvisor)",
+      "title": "🇩🇪 Сервер Франкфурт (node_exporter + cAdvisor)",
       "type": "row",
       "gridPos": { "h": 1, "w": 24, "x": 0, "y": 69 }
     },
     {
       "id": 30,
-      "title": "🧠 CPU usage",
+      "title": "🧠 CPU Frankfurt",
       "type": "gauge",
       "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "targets": [{ "expr": "100 - (avg by(instance)(rate(node_cpu_seconds_total{mode=\"idle\"}[1m])) * 100)", "refId": "A" }],
+      "targets": [{ "expr": "100 - (avg by(instance)(rate(node_cpu_seconds_total{mode=\"idle\", server_location=\"frankfurt\"}[1m])) * 100)", "refId": "A" }],
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "thresholds" },
@@ -305,13 +351,13 @@
     },
     {
       "id": 31,
-      "title": "🧠 CPU load (1m/5m/15m)",
+      "title": "🧠 CPU load Frankfurt (1m/5m/15m)",
       "type": "timeseries",
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
-        { "expr": "node_load1", "legendFormat": "1m", "refId": "A" },
-        { "expr": "node_load5", "legendFormat": "5m", "refId": "B" },
-        { "expr": "node_load15", "legendFormat": "15m", "refId": "C" }
+        { "expr": "node_load1{server_location=\"frankfurt\"}", "legendFormat": "1m", "refId": "A" },
+        { "expr": "node_load5{server_location=\"frankfurt\"}", "legendFormat": "5m", "refId": "B" },
+        { "expr": "node_load15{server_location=\"frankfurt\"}", "legendFormat": "15m", "refId": "C" }
       ],
       "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "custom": { "drawStyle": "line", "fillOpacity": 15, "lineInterpolation": "smooth", "lineWidth": 2 }, "unit": "none" } },
       "options": { "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "none" } },
@@ -319,11 +365,11 @@
     },
     {
       "id": 32,
-      "title": "💾 RAM usage",
+      "title": "💾 RAM Frankfurt",
       "type": "gauge",
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [{
-        "expr": "(1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100",
+        "expr": "(1 - (node_memory_MemAvailable_bytes{server_location=\"frankfurt\"} / node_memory_MemTotal_bytes{server_location=\"frankfurt\"})) * 100",
         "refId": "A"
       }],
       "fieldConfig": {
@@ -338,13 +384,13 @@
     },
     {
       "id": 33,
-      "title": "💾 RAM usage over time",
+      "title": "💾 RAM Frankfurt over time",
       "type": "timeseries",
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
-        { "expr": "node_memory_MemTotal_bytes", "legendFormat": "Total", "refId": "A" },
-        { "expr": "node_memory_MemAvailable_bytes", "legendFormat": "Available", "refId": "B" },
-        { "expr": "node_memory_MemFree_bytes", "legendFormat": "Free", "refId": "C" }
+        { "expr": "node_memory_MemTotal_bytes{server_location=\"frankfurt\"}", "legendFormat": "Total", "refId": "A" },
+        { "expr": "node_memory_MemAvailable_bytes{server_location=\"frankfurt\"}", "legendFormat": "Available", "refId": "B" },
+        { "expr": "node_memory_MemFree_bytes{server_location=\"frankfurt\"}", "legendFormat": "Free", "refId": "C" }
       ],
       "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "custom": { "drawStyle": "line", "fillOpacity": 15, "lineInterpolation": "smooth", "lineWidth": 2 }, "unit": "bytes" } },
       "options": { "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "none" } },
@@ -352,11 +398,11 @@
     },
     {
       "id": 34,
-      "title": "💽 Disk usage",
+      "title": "💽 Disk Frankfurt",
       "type": "gauge",
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [{
-        "expr": "(1 - (node_filesystem_avail_bytes{mountpoint=\"/\",fstype!=\"\"} / node_filesystem_size_bytes{mountpoint=\"/\",fstype!=\"\"})) * 100",
+        "expr": "(1 - (node_filesystem_avail_bytes{mountpoint=\"/\",fstype!=\"\", server_location=\"frankfurt\"} / node_filesystem_size_bytes{mountpoint=\"/\",fstype!=\"\", server_location=\"frankfurt\"})) * 100",
         "refId": "A"
       }],
       "fieldConfig": {
@@ -371,12 +417,12 @@
     },
     {
       "id": 35,
-      "title": "💽 Disk I/O",
+      "title": "💽 Disk I/O Frankfurt",
       "type": "timeseries",
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
-        { "expr": "rate(node_disk_read_bytes_total[1m])", "legendFormat": "read", "refId": "A" },
-        { "expr": "rate(node_disk_written_bytes_total[1m])", "legendFormat": "written", "refId": "B" }
+        { "expr": "rate(node_disk_read_bytes_total{server_location=\"frankfurt\"}[1m])", "legendFormat": "read", "refId": "A" },
+        { "expr": "rate(node_disk_written_bytes_total{server_location=\"frankfurt\"}[1m])", "legendFormat": "written", "refId": "B" }
       ],
       "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "custom": { "drawStyle": "line", "fillOpacity": 15, "lineInterpolation": "smooth", "lineWidth": 2 }, "unit": "Bps" } },
       "options": { "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "none" } },
@@ -384,12 +430,12 @@
     },
     {
       "id": 36,
-      "title": "📦 Docker containers (cAdvisor)",
+      "title": "📦 Docker containers Frankfurt",
       "type": "table",
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
-          "expr": "count(container_last_seen{name=~\".+\"}) by (name)",
+          "expr": "count(container_last_seen{name=~\".+\", server_location=\"frankfurt\"}) by (name)",
           "format": "table",
           "instant": true,
           "refId": "A"
@@ -402,7 +448,7 @@
           "unit": "none"
         },
         "overrides": [
-          { "matcher": { "id": "byName", "options": "Value" }, "properties": [{ "id": "displayName", "value": "Running Containers" }] }
+          { "matcher": { "id": "byName", "options": "Value" }, "properties": [{ "id": "displayName", "value": "Running" }] }
         ]
       },
       "options": { "footer": { "show": false }, "frameIndex": 0, "showHeader": true, "sortBy": [] },
@@ -410,23 +456,23 @@
     },
     {
       "id": 37,
-      "title": "🌐 Network I/O",
+      "title": "🌐 Network Frankfurt",
       "type": "timeseries",
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
-        { "expr": "rate(node_network_receive_bytes_total[1m])", "legendFormat": "rx", "refId": "A" },
-        { "expr": "rate(node_network_transmit_bytes_total[1m])", "legendFormat": "tx", "refId": "B" }
+        { "expr": "rate(node_network_receive_bytes_total{server_location=\"frankfurt\"}[1m])", "legendFormat": "rx", "refId": "A" },
+        { "expr": "rate(node_network_transmit_bytes_total{server_location=\"frankfurt\"}[1m])", "legendFormat": "tx", "refId": "B" }
       ],
       "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "custom": { "drawStyle": "line", "fillOpacity": 15, "lineInterpolation": "smooth", "lineWidth": 2 }, "unit": "Bps" } },
       "options": { "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "none" } },
-      "gridPos": { "h": 5, "w": 12, "x": 0, "y": 80 }
+      "gridPos": { "h": 5, "w": 8, "x": 0, "y": 80 }
     },
     {
       "id": 38,
-      "title": "⏱ Uptime",
+      "title": "⏱ Uptime Frankfurt",
       "type": "stat",
       "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "targets": [{ "expr": "time() - node_boot_time_seconds", "refId": "A" }],
+      "targets": [{ "expr": "time() - node_boot_time_seconds{server_location=\"frankfurt\"}", "refId": "A" }],
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "thresholds" },
@@ -435,14 +481,14 @@
         }
       },
       "options": { "colorMode": "value", "graphMode": "none", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
-      "gridPos": { "h": 5, "w": 4, "x": 12, "y": 80 }
+      "gridPos": { "h": 5, "w": 4, "x": 8, "y": 80 }
     },
     {
       "id": 39,
-      "title": "🧵 Open FDs / Processes",
+      "title": "🧵 Processes Frankfurt",
       "type": "stat",
       "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "targets": [{ "expr": "node_procs_running", "refId": "A" }],
+      "targets": [{ "expr": "node_procs_running{server_location=\"frankfurt\"}", "refId": "A" }],
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "thresholds" },
@@ -451,23 +497,179 @@
         }
       },
       "options": { "colorMode": "background", "graphMode": "none", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
-      "gridPos": { "h": 5, "w": 4, "x": 16, "y": 80 }
+      "gridPos": { "h": 5, "w": 4, "x": 12, "y": 80 }
     },
     {
-      "id": 40,
-      "title": "🌡 CPU Temperature",
-      "type": "stat",
+      "id": 9007,
+      "title": "🇷🇺 Сервер Москва (node_exporter + cAdvisor)",
+      "type": "row",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 85 }
+    },
+    {
+      "id": 50,
+      "title": "🧠 CPU Moscow",
+      "type": "gauge",
       "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "targets": [{ "expr": "node_hwmon_temp_celsius", "refId": "A" }],
+      "targets": [{ "expr": "100 - (avg by(instance)(rate(node_cpu_seconds_total{mode=\"idle\", server_location=\"moscow\"}[1m])) * 100)", "refId": "A" }],
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "thresholds" },
-          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "orange", "value": 60 }, { "color": "red", "value": 80 }] },
-          "unit": "celsius"
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "orange", "value": 60 }, { "color": "red", "value": 85 }] },
+          "unit": "percent"
+        }
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "orientation": "auto", "showThresholdLabels": false, "showThresholdMarkers": true },
+      "gridPos": { "h": 5, "w": 4, "x": 0, "y": 86 }
+    },
+    {
+      "id": 51,
+      "title": "🧠 CPU load Moscow (1m/5m/15m)",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "expr": "node_load1{server_location=\"moscow\"}", "legendFormat": "1m", "refId": "A" },
+        { "expr": "node_load5{server_location=\"moscow\"}", "legendFormat": "5m", "refId": "B" },
+        { "expr": "node_load15{server_location=\"moscow\"}", "legendFormat": "15m", "refId": "C" }
+      ],
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "custom": { "drawStyle": "line", "fillOpacity": 15, "lineInterpolation": "smooth", "lineWidth": 2 }, "unit": "none" } },
+      "options": { "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "none" } },
+      "gridPos": { "h": 5, "w": 8, "x": 4, "y": 86 }
+    },
+    {
+      "id": 52,
+      "title": "💾 RAM Moscow",
+      "type": "gauge",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{
+        "expr": "(1 - (node_memory_MemAvailable_bytes{server_location=\"moscow\"} / node_memory_MemTotal_bytes{server_location=\"moscow\"})) * 100",
+        "refId": "A"
+      }],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "orange", "value": 70 }, { "color": "red", "value": 90 }] },
+          "unit": "percent"
+        }
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "orientation": "auto", "showThresholdLabels": false, "showThresholdMarkers": true },
+      "gridPos": { "h": 5, "w": 4, "x": 12, "y": 86 }
+    },
+    {
+      "id": 53,
+      "title": "💾 RAM Moscow over time",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "expr": "node_memory_MemTotal_bytes{server_location=\"moscow\"}", "legendFormat": "Total", "refId": "A" },
+        { "expr": "node_memory_MemAvailable_bytes{server_location=\"moscow\"}", "legendFormat": "Available", "refId": "B" },
+        { "expr": "node_memory_MemFree_bytes{server_location=\"moscow\"}", "legendFormat": "Free", "refId": "C" }
+      ],
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "custom": { "drawStyle": "line", "fillOpacity": 15, "lineInterpolation": "smooth", "lineWidth": 2 }, "unit": "bytes" } },
+      "options": { "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "none" } },
+      "gridPos": { "h": 5, "w": 8, "x": 16, "y": 86 }
+    },
+    {
+      "id": 54,
+      "title": "💽 Disk Moscow",
+      "type": "gauge",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{
+        "expr": "(1 - (node_filesystem_avail_bytes{mountpoint=\"/\",fstype!=\"\", server_location=\"moscow\"} / node_filesystem_size_bytes{mountpoint=\"/\",fstype!=\"\", server_location=\"moscow\"})) * 100",
+        "refId": "A"
+      }],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "orange", "value": 75 }, { "color": "red", "value": 90 }] },
+          "unit": "percent"
+        }
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "orientation": "auto", "showThresholdLabels": false, "showThresholdMarkers": true },
+      "gridPos": { "h": 5, "w": 4, "x": 0, "y": 91 }
+    },
+    {
+      "id": 55,
+      "title": "💽 Disk I/O Moscow",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "expr": "rate(node_disk_read_bytes_total{server_location=\"moscow\"}[1m])", "legendFormat": "read", "refId": "A" },
+        { "expr": "rate(node_disk_written_bytes_total{server_location=\"moscow\"}[1m])", "legendFormat": "written", "refId": "B" }
+      ],
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "custom": { "drawStyle": "line", "fillOpacity": 15, "lineInterpolation": "smooth", "lineWidth": 2 }, "unit": "Bps" } },
+      "options": { "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "none" } },
+      "gridPos": { "h": 5, "w": 8, "x": 4, "y": 91 }
+    },
+    {
+      "id": 56,
+      "title": "🌐 Network Moscow",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "expr": "rate(node_network_receive_bytes_total{server_location=\"moscow\"}[1m])", "legendFormat": "rx", "refId": "A" },
+        { "expr": "rate(node_network_transmit_bytes_total{server_location=\"moscow\"}[1m])", "legendFormat": "tx", "refId": "B" }
+      ],
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "custom": { "drawStyle": "line", "fillOpacity": 15, "lineInterpolation": "smooth", "lineWidth": 2 }, "unit": "Bps" } },
+      "options": { "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "none" } },
+      "gridPos": { "h": 5, "w": 12, "x": 12, "y": 91 }
+    },
+    {
+      "id": 57,
+      "title": "⏱ Uptime Moscow",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "expr": "time() - node_boot_time_seconds{server_location=\"moscow\"}", "refId": "A" }],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] },
+          "unit": "s"
+        }
+      },
+      "options": { "colorMode": "value", "graphMode": "none", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
+      "gridPos": { "h": 5, "w": 4, "x": 0, "y": 96 }
+    },
+    {
+      "id": 58,
+      "title": "🧵 Processes Moscow",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "expr": "node_procs_running{server_location=\"moscow\"}", "refId": "A" }],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "orange", "value": 200 }, { "color": "red", "value": 500 }] },
+          "unit": "none"
         }
       },
       "options": { "colorMode": "background", "graphMode": "none", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
-      "gridPos": { "h": 5, "w": 4, "x": 20, "y": 80 }
+      "gridPos": { "h": 5, "w": 4, "x": 4, "y": 96 }
+    },
+    {
+      "id": 59,
+      "title": "📦 Docker containers Moscow",
+      "type": "table",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "count(container_last_seen{name=~\".+\", server_location=\"moscow\"}) by (name)",
+          "format": "table",
+          "instant": true,
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] },
+          "unit": "none"
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "Value" }, "properties": [{ "id": "displayName", "value": "Running" }] }
+        ]
+      },
+      "options": { "footer": { "show": false }, "frameIndex": 0, "showHeader": true, "sortBy": [] },
+      "gridPos": { "h": 5, "w": 8, "x": 8, "y": 96 }
     }
   ]
 }

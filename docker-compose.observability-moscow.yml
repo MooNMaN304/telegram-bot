@@ -1,0 +1,82 @@
+# ================================================================
+#  Лёгкий observability-стек для МОСКВЫ
+#  Только node_exporter + cadvisor + promtail (логи → Frankfurt Loki)
+#  НЕ включает Prometheus / Grafana / Loki — они живут во Франкфурте.
+# ================================================================
+version: "3.8"
+
+services:
+  # ============================================================
+  # 🖥 Метрики сервера (CPU, RAM, диск) — скрейпится Frankfurt Prometheus
+  # ============================================================
+  node_exporter:
+    image: prom/node-exporter:v1.8.0
+    container_name: node_exporter
+    ports:
+      - "9100:9100"
+    command:
+      - "--path.rootfs=/host"
+      - "--path.procfs=/host/proc"
+      - "--path.sysfs=/host/sys"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/host:ro
+    networks:
+      - moscow_observability
+    deploy:
+      resources:
+        limits:
+          cpus: "0.05"
+          memory: 24M
+    restart: unless-stopped
+
+  # ============================================================
+  # 📦 Метрики Docker контейнеров — скрейпится Frankfurt Prometheus
+  # ============================================================
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.49.1
+    container_name: cadvisor
+    privileged: true
+    ports:
+      - "8080:8080"
+    devices:
+      - /dev/kmsg:/dev/kmsg
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker:/var/lib/docker:ro
+      - /dev/disk:/dev/disk:ro
+    networks:
+      - moscow_observability
+    deploy:
+      resources:
+        limits:
+          cpus: "0.10"
+          memory: 48M
+    restart: unless-stopped
+
+  # ============================================================
+  # 📋 Promtail — шипит логи в Frankfurt Loki
+  # ============================================================
+  promtail:
+    image: grafana/promtail:2.9.2
+    container_name: promtail
+    volumes:
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./observability/promtail/promtail-moscow.yaml:/etc/promtail/config.yml
+    command: -config.file=/etc/promtail/config.yml
+    networks:
+      - moscow_observability
+    deploy:
+      resources:
+        limits:
+          cpus: "0.05"
+          memory: 32M
+    restart: unless-stopped
+
+networks:
+  moscow_observability:
+    driver: bridge

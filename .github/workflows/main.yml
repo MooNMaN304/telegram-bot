@@ -47,44 +47,53 @@ jobs:
 
       - name: Deploy to Frankfurt server
         uses: appleboy/ssh-action@v1.0.0
+        env:
+          MOSCOW_HOST: ${{ secrets.MOSCOW_HOST }}
         with:
           host: ${{ secrets.FRANKFURT_HOST }}
           username: ${{ secrets.FRANKFURT_USER }}
           key: ${{ secrets.FRANKFURT_SSH_KEY }}
+          envs: MOSCOW_HOST
           script: |
             set -e
             echo "=== Deploying to Frankfurt ==="
             cd /root/telegram-bot
 
             # Pull latest code
-            echo "[1/5] Pulling latest code..."
+            echo "[1/7] Pulling latest code..."
             git reset --hard HEAD
             git clean -fd
             git pull origin master
 
             # Free up disk space before build (предотвращает ошибки "disk is full")
-            echo "[1.5/5] Cleaning up Docker cache..."
+            echo "[1.5/7] Cleaning up Docker cache..."
             docker system prune -af --filter "until=24h" 2>/dev/null || true
 
             # Fix permissions
-            echo "[2/5] Fixing permissions..."
+            echo "[2/7] Fixing permissions..."
             chmod +x entrypoint.bot.sh
             chmod +x scripts/*.sh 2>/dev/null || true
 
+            # Generate prometheus.yml from template (подставляем IP московского сервера)
+            echo "[2.5/7] Generating prometheus.yml (MOSCOW_HOST=${MOSCOW_HOST})..."
+            sed "s/\${MOSCOW_SERVER_IP}/${MOSCOW_HOST}/g" \
+              observability/prometheus/prometheus.yml.template \
+              > observability/prometheus/prometheus.yml
+
             # Ensure observability network exists (для node_exporter/cadvisor)
-            echo "[2.5/5] Ensuring observability network exists..."
+            echo "[3/7] Ensuring observability network exists..."
             docker network create observability 2>/dev/null || true
 
             # Build and restart bot
-            echo "[3/5] Building and restarting bot..."
+            echo "[4/7] Building and restarting bot..."
             docker compose -f docker-compose.frankfurt.yml up -d --build
 
             # Start observability stack
-            echo "[4/5] Starting observability stack..."
+            echo "[5/7] Starting observability stack..."
             docker compose -f docker-compose.observability.yml up -d
 
             # Reload Grafana dashboards (провижининг + API)
-            echo "[5/5] Reloading Grafana dashboards..."
+            echo "[6/7] Reloading Grafana dashboards..."
             docker compose -f docker-compose.observability.yml restart grafana
             sleep 3
             curl -s -X POST http://localhost:3000/api/admin/provisioning/dashboards/reload \
@@ -102,73 +111,50 @@ jobs:
 
       - name: Deploy to Moscow server
         uses: appleboy/ssh-action@v1.0.0
-        # === ЧТО ИСПРАВЛЕНО 1: Передаем секреты из GitHub в окружение раннера ===
         env:
           MOSCOW_DATABASE_URL: ${{ secrets.MOSCOW_DATABASE_URL }}
           ADMIN_TELEGRAM_ID: ${{ secrets.ADMIN_TELEGRAM_ID }}
-        # =====================================================================
+          FRANKFURT_HOST: ${{ secrets.FRANKFURT_HOST }}
         with:
           host: ${{ secrets.MOSCOW_HOST }}
           username: ${{ secrets.MOSCOW_USER }}
           key: ${{ secrets.MOSCOW_SSH_KEY }}
           timeout: 10m
-          envs: MOSCOW_DATABASE_URL, ADMIN_TELEGRAM_ID
+          envs: MOSCOW_DATABASE_URL, ADMIN_TELEGRAM_ID, FRANKFURT_HOST
           script: |
             set -e
             echo "=== Deploying to Moscow ==="
             cd /home/ubuntu/telegram-bot
 
             # Pull latest code
-            echo "[1/4] Pulling latest code..."
+            echo "[1/5] Pulling latest code..."
             git reset --hard HEAD
             git clean -fd
             git pull origin master
 
             # Setup environment variables
-            echo "[2/4] Setting up environment variables..."
-
-            # === ЧТО ИСПРАВЛЕНО 2: Безопасно обновляем файл, не стирая API-ключи ===
-            # Удаляем старые строки (если они были), чтобы не плодить дубликаты
+            echo "[2/5] Setting up environment variables..."
             sed -i '/DATABASE_URL/d' .env 2>/dev/null || true
             sed -i '/ADMIN_TELEGRAM_ID/d' .env 2>/dev/null || true
-
-            # Дописываем новые значения строго в конец файла через >>
             echo "DATABASE_URL=${MOSCOW_DATABASE_URL}" >> .env
             echo "ADMIN_TELEGRAM_ID=${ADMIN_TELEGRAM_ID}" >> .env
-            # =====================================================================
 
             # Free up disk space before build
-            echo "[2.5/4] Cleaning up Docker cache..."
+            echo "[2.5/5] Cleaning up Docker cache..."
             docker system prune -af --filter "until=24h" 2>/dev/null || true
 
-            # Ensure observability network exists (для связи с Prometheus)
-            echo "[2.6/4] Ensuring observability network exists..."
-            docker network create observability 2>/dev/null || true
-
             # Build and restart celery worker
-            echo "[3/4] Building and restarting celery worker..."
+            echo "[3/5] Building and restarting celery worker..."
             docker compose -f docker-compose.moscow.yml up -d --build
 
-            # Start observability stack (Prometheus, Grafana, Loki, etc.)
-            echo "[3.5/4] Starting observability stack..."
-            docker compose -f docker-compose.observability.yml up -d
+            # Start lightweight observability (node_exporter + cadvisor + promtail)
+            echo "[4/5] Starting lightweight observability stack..."
+            docker compose -f docker-compose.observability-moscow.yml up -d
 
-            # Reload Grafana dashboards
-            echo "[3.6/4] Reloading Grafana dashboards..."
-            docker compose -f docker-compose.observability.yml restart grafana 2>/dev/null || true
-            sleep 2
-            curl -s -X POST http://localhost:3000/api/admin/provisioning/dashboards/reload \
-              --connect-timeout 5 || echo "Grafana API reload skipped (non-critical)"
-
-            # Start Promtail for log collection (если observability.yml не запустил)
-            echo "[4/4] Ensuring Promtail for log shipping..."
-            if ! docker ps --format '{{.Names}}' | grep -q promtail; then
-              docker run -d --name promtail-moscow \
-                -v /var/lib/docker/containers:/var/lib/docker/containers:ro \
-                -v /var/run/docker.sock:/var/run/docker.sock \
-                -v $(pwd)/observability/promtail/promtail-moscow.yaml:/etc/promtail/config.yml \
-                --network host \
-                grafana/promtail:2.9.2 -config.file=/etc/promtail/config.yml
-            fi
+            # Update promtail config to point to Frankfurt Loki
+            echo "[4.5/5] Configuring Promtail → Frankfurt Loki (${FRANKFURT_HOST})..."
+            sed -i "s|http://[^:]*:3100/loki|http://${FRANKFURT_HOST}:3100/loki|g" \
+              observability/promtail/promtail-moscow.yaml 2>/dev/null || true
+            docker compose -f docker-compose.observability-moscow.yml restart promtail 2>/dev/null || true
 
             echo "=== Moscow deployment complete! ==="

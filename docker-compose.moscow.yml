@@ -37,6 +37,7 @@ services:
       - SERVICE_NAME=celery-worker
       - SERVER_LOCATION=moscow
       - CELERY_WORKER_MODE=1
+      - METRICS_PORT=8001
     labels:
       logging: "promtail"
       service: "celery-worker"
@@ -46,17 +47,16 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+    # Пробрасываем порт метрик наружу, чтобы Prometheus на Франкфурте мог скрейпить
+    ports:
+      - "8001:8001"
     command: celery -A src.parsing_movie.celery:celery_app worker --loglevel=info --concurrency=1
     volumes:
       - .:/src
     networks:
       - moscow_network
-      - observability
     restart: unless-stopped
 
 networks:
   moscow_network:
     driver: bridge
-  # Подключаемся к observability, чтобы Prometheus мог собирать метрики celery_worker
-  observability:
-    external: true

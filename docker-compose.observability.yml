@@ -12,6 +12,11 @@ services:
       - loki_data:/loki
     networks:
       - observability
+    deploy:
+      resources:
+        limits:
+          cpus: "0.10"
+          memory: 64M
     restart: unless-stopped
 
   promtail:
@@ -24,6 +29,11 @@ services:
     command: -config.file=/etc/promtail/config.yml
     networks:
       - observability
+    deploy:
+      resources:
+        limits:
+          cpus: "0.03"
+          memory: 24M
     restart: unless-stopped
 
   prometheus:
@@ -37,11 +47,17 @@ services:
       - "--web.console.libraries=/etc/prometheus/console_libraries"
       - "--web.console.templates=/etc/prometheus/consoles"
       - "--web.enable-lifecycle"
+      - "--storage.tsdb.retention.time=7d"
     volumes:
       - ./observability/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
       - prometheus_data:/prometheus
     networks:
       - observability
+    deploy:
+      resources:
+        limits:
+          cpus: "0.15"
+          memory: 96M
     restart: unless-stopped
 
   grafana:
@@ -53,7 +69,6 @@ services:
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
       - GF_AUTH_ANONYMOUS_ENABLED=true
       - GF_AUTH_ANONYMOUS_ORG_ROLE=Viewer
-      # Автоматическая перезагрузка дашбордов при изменении файлов на диске
       - GF_PROVISIONING_DASHBOARDS_AUTO_RELOAD=true
     volumes:
       - grafana_storage:/var/lib/grafana
@@ -61,6 +76,11 @@ services:
       - ./observability/grafana/dashboards:/etc/grafana/provisioning/dashboards
     networks:
       - observability
+    deploy:
+      resources:
+        limits:
+          cpus: "0.10"
+          memory: 64M
     restart: unless-stopped
 
   # ============================================================
@@ -69,6 +89,8 @@ services:
   node_exporter:
     image: prom/node-exporter:v1.8.0
     container_name: node_exporter
+    ports:
+      - "9100:9100"
     command:
       - "--path.rootfs=/host"
       - "--path.procfs=/host/proc"
@@ -79,15 +101,24 @@ services:
       - /:/host:ro
     networks:
       - observability
+    deploy:
+      resources:
+        limits:
+          cpus: "0.03"
+          memory: 24M
     restart: unless-stopped
 
   # ============================================================
   # 📦 Мониторинг Docker контейнеров
+  # ⚠️ cadvisor опрашивает Docker API — может нагружать dockerd!
+  # Если dockerd жрёт CPU — уменьшите scrape_interval или уберите cadvisor.
   # ============================================================
   cadvisor:
     image: gcr.io/cadvisor/cadvisor:v0.49.1
     container_name: cadvisor
     privileged: true
+    ports:
+      - "8080:8080"
     devices:
       - /dev/kmsg:/dev/kmsg
     volumes:
@@ -98,6 +129,16 @@ services:
       - /dev/disk:/dev/disk:ro
     networks:
       - observability
+    # ⚠️ cadvisor store_interval — уменьшаем нагрузку на dockerd
+    command: >
+      --docker_only=true
+      --store_interval=30s
+      --housekeeping_interval=60s
+    deploy:
+      resources:
+        limits:
+          cpus: "0.05"
+          memory: 32M
     restart: unless-stopped
 
 networks:
