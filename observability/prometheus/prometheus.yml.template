@@ -24,13 +24,6 @@ scrape_configs:
         labels:
           server_location: "frankfurt"
 
-  # 📦 Метрики Docker контейнеров Frankfurt
-  - job_name: "cadvisor"
-    static_configs:
-      - targets: ["cadvisor:8080"]
-        labels:
-          server_location: "frankfurt"
-
   # ============================================================
   #  🇷🇺 MOSCOW
   # ============================================================

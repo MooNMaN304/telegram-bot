@@ -106,38 +106,9 @@ services:
           memory: 24M
     restart: unless-stopped
 
-  # ============================================================
-  # 📦 Мониторинг Docker контейнеров
-  # ⚠️ cadvisor опрашивает Docker API — может нагружать dockerd!
-  # Если dockerd жрёт CPU — уменьшите scrape_interval или уберите cadvisor.
-  # ============================================================
-  cadvisor:
-    image: gcr.io/cadvisor/cadvisor:v0.49.1
-    container_name: cadvisor
-    privileged: true
-    ports:
-      - "8080:8080"
-    devices:
-      - /dev/kmsg:/dev/kmsg
-    volumes:
-      - /:/rootfs:ro
-      - /var/run:/var/run:ro
-      - /sys:/sys:ro
-      - /var/lib/docker:/var/lib/docker:ro
-      - /dev/disk:/dev/disk:ro
-    networks:
-      - observability
-    # ⚠️ cadvisor store_interval — уменьшаем нагрузку на dockerd
-    command: >
-      --docker_only=true
-      --store_interval=30s
-      --housekeeping_interval=60s
-    deploy:
-      resources:
-        limits:
-          cpus: "0.05"
-          memory: 32M
-    restart: unless-stopped
+  # cadvisor УБРАН с Франкфурта — он опрашивает Docker API каждые несколько
+  # секунд и нагружает dockerd на 80%+ CPU. На 1-ядерном сервере это критично.
+  # Метрики сервера (CPU, RAM, диск, сеть) даёт node_exporter — этого достаточно.
 
 networks:
   observability:
