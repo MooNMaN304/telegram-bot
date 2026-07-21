@@ -24,6 +24,7 @@ services:
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
       - /var/run/docker.sock:/var/run/docker.sock
       - ./observability/promtail/promtail-frankfurt.yaml:/etc/promtail/config.yml
+      - /var/log:/var/log:ro
     command: -config.file=/etc/promtail/config.yml
     networks:
       - observability
@@ -106,9 +107,58 @@ services:
           memory: 24M
     restart: unless-stopped
 
-  # cadvisor УБРАН с Франкфурта — он опрашивает Docker API каждые несколько
-  # секунд и нагружает dockerd на 80%+ CPU. На 1-ядерном сервере это критично.
-  # Метрики сервера (CPU, RAM, диск, сеть) даёт node_exporter — этого достаточно.
+  # ============================================================
+  # 🔍 Process Exporter — per-process CPU/RAM метрики
+  # Показывает какой именно процесс жрёт CPU
+  # ============================================================
+  process_exporter:
+    image: ncabatoff/process-exporter:latest
+    container_name: process_exporter
+    ports:
+      - "9256:9256"
+    privileged: true
+    volumes:
+      - /proc:/host/proc:ro
+      - /:/host:ro
+      - ./observability/process-exporter/process-exporter.yml:/etc/process-exporter/config.yml
+    command:
+      - "--procfs=/host/proc"
+      - "--config.path=/etc/process-exporter/config.yml"
+    networks:
+      - observability
+    deploy:
+      resources:
+        limits:
+          cpus: "0.03"
+          memory: 24M
+    restart: unless-stopped
+
+  # ============================================================
+  # 📦 cAdvisor — per-container CPU/RAM метрики
+  # scrape_interval=60s чтобы НЕ нагружать dockerd
+  # ============================================================
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.49.1
+    container_name: cadvisor
+    privileged: true
+    ports:
+      - "8080:8080"
+    devices:
+      - /dev/kmsg:/dev/kmsg
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker:/var/lib/docker:ro
+      - /dev/disk:/dev/disk:ro
+    networks:
+      - observability
+    deploy:
+      resources:
+        limits:
+          cpus: "0.10"
+          memory: 48M
+    restart: unless-stopped
 
 networks:
   observability:

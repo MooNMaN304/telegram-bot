@@ -500,10 +500,73 @@
       "gridPos": { "h": 5, "w": 4, "x": 12, "y": 80 }
     },
     {
+      "id": 9008,
+      "title": "🔍 Per-Process CPU (Frankfurt)",
+      "type": "row",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 85 }
+    },
+    {
+      "id": 40,
+      "title": "🔍 Top processes by CPU %",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "expr": "rate(namedprocess_namegroup_cpu_seconds_total{server_location=\"frankfurt\"}[5m]) * 100", "legendFormat": "{{groupname}}", "refId": "A" }
+      ],
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "custom": { "drawStyle": "line", "fillOpacity": 20, "lineInterpolation": "smooth", "lineWidth": 2 }, "unit": "percent" } },
+      "options": { "legend": { "calcs": ["max"], "displayMode": "table", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "desc" } },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 86 }
+    },
+    {
+      "id": 43,
+      "title": "🔍 Top processes by Memory",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "expr": "namedprocess_namegroup_memory_bytes{server_location=\"frankfurt\", memtype=\"resident\"}", "legendFormat": "{{groupname}}", "refId": "A" }
+      ],
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "custom": { "drawStyle": "line", "fillOpacity": 20, "lineInterpolation": "smooth", "lineWidth": 2 }, "unit": "bytes" } },
+      "options": { "legend": { "calcs": ["max"], "displayMode": "table", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "desc" } },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 86 }
+    },
+    {
+      "id": 44,
+      "title": "📦 Docker containers CPU %",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "expr": "rate(container_cpu_usage_seconds_total{server_location=\"frankfurt\", name=~\".+\"}[5m]) * 100", "legendFormat": "{{name}}", "refId": "A" }
+      ],
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "custom": { "drawStyle": "line", "fillOpacity": 20, "lineInterpolation": "smooth", "lineWidth": 2 }, "unit": "percent" } },
+      "options": { "legend": { "calcs": ["max"], "displayMode": "table", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "desc" } },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 94 }
+    },
+    {
+      "id": 45,
+      "title": "📦 Docker containers Memory",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "expr": "container_memory_usage_bytes{server_location=\"frankfurt\", name=~\".+\"}", "legendFormat": "{{name}}", "refId": "A" }
+      ],
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "custom": { "drawStyle": "line", "fillOpacity": 20, "lineInterpolation": "smooth", "lineWidth": 2 }, "unit": "bytes" } },
+      "options": { "legend": { "calcs": ["max"], "displayMode": "table", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "desc" } },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 94 }
+    },
+    {
+      "id": 46,
+      "title": "📋 Системные логи (syslog/dmesg/docker)",
+      "type": "logs",
+      "datasource": { "type": "loki", "uid": "P8E80F9AEF21F6940" },
+      "targets": [{ "expr": "{job=~\"syslog|kern|dmesg|docker_daemon\", server_location=\"frankfurt\"}", "refId": "A" }],
+      "options": { "showTime": true, "showLabels": true, "showCommonLabels": false, "wrapLogMessage": true, "prettifyLogsMessage": true, "enableLogDetails": true, "dedupStrategy": "none", "sortOrder": "Descending" },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 102 }
+    },
+    {
       "id": 9007,
       "title": "🇷🇺 Сервер Москва (node_exporter + cAdvisor)",
       "type": "row",
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 85 }
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 110 }
     },
     {
       "id": 50,
@@ -519,7 +582,7 @@
         }
       },
       "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "orientation": "auto", "showThresholdLabels": false, "showThresholdMarkers": true },
-      "gridPos": { "h": 5, "w": 4, "x": 0, "y": 86 }
+      "gridPos": { "h": 5, "w": 4, "x": 0, "y": 111 }
     },
     {
       "id": 51,
@@ -533,7 +596,7 @@
       ],
       "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "custom": { "drawStyle": "line", "fillOpacity": 15, "lineInterpolation": "smooth", "lineWidth": 2 }, "unit": "none" } },
       "options": { "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "none" } },
-      "gridPos": { "h": 5, "w": 8, "x": 4, "y": 86 }
+      "gridPos": { "h": 5, "w": 8, "x": 4, "y": 111 }
     },
     {
       "id": 52,
@@ -552,7 +615,7 @@
         }
       },
       "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "orientation": "auto", "showThresholdLabels": false, "showThresholdMarkers": true },
-      "gridPos": { "h": 5, "w": 4, "x": 12, "y": 86 }
+      "gridPos": { "h": 5, "w": 4, "x": 12, "y": 111 }
     },
     {
       "id": 53,
@@ -566,7 +629,7 @@
       ],
       "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "custom": { "drawStyle": "line", "fillOpacity": 15, "lineInterpolation": "smooth", "lineWidth": 2 }, "unit": "bytes" } },
       "options": { "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "none" } },
-      "gridPos": { "h": 5, "w": 8, "x": 16, "y": 86 }
+      "gridPos": { "h": 5, "w": 8, "x": 16, "y": 111 }
     },
     {
       "id": 54,
@@ -585,7 +648,7 @@
         }
       },
       "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "orientation": "auto", "showThresholdLabels": false, "showThresholdMarkers": true },
-      "gridPos": { "h": 5, "w": 4, "x": 0, "y": 91 }
+      "gridPos": { "h": 5, "w": 4, "x": 0, "y": 116 }
     },
     {
       "id": 55,
@@ -598,7 +661,7 @@
       ],
       "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "custom": { "drawStyle": "line", "fillOpacity": 15, "lineInterpolation": "smooth", "lineWidth": 2 }, "unit": "Bps" } },
       "options": { "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "none" } },
-      "gridPos": { "h": 5, "w": 8, "x": 4, "y": 91 }
+      "gridPos": { "h": 5, "w": 8, "x": 4, "y": 116 }
     },
     {
       "id": 56,
@@ -611,7 +674,7 @@
       ],
       "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "custom": { "drawStyle": "line", "fillOpacity": 15, "lineInterpolation": "smooth", "lineWidth": 2 }, "unit": "Bps" } },
       "options": { "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "none" } },
-      "gridPos": { "h": 5, "w": 12, "x": 12, "y": 91 }
+      "gridPos": { "h": 5, "w": 12, "x": 12, "y": 116 }
     },
     {
       "id": 57,
@@ -627,7 +690,7 @@
         }
       },
       "options": { "colorMode": "value", "graphMode": "none", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
-      "gridPos": { "h": 5, "w": 4, "x": 0, "y": 96 }
+      "gridPos": { "h": 5, "w": 4, "x": 0, "y": 121 }
     },
     {
       "id": 58,
@@ -643,7 +706,7 @@
         }
       },
       "options": { "colorMode": "background", "graphMode": "none", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
-      "gridPos": { "h": 5, "w": 4, "x": 4, "y": 96 }
+      "gridPos": { "h": 5, "w": 4, "x": 4, "y": 121 }
     },
     {
       "id": 59,
@@ -669,7 +732,7 @@
         ]
       },
       "options": { "footer": { "show": false }, "frameIndex": 0, "showHeader": true, "sortBy": [] },
-      "gridPos": { "h": 5, "w": 8, "x": 8, "y": 96 }
+      "gridPos": { "h": 5, "w": 8, "x": 8, "y": 121 }
     }
   ]
 }

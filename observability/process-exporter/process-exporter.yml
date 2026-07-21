@@ -1,0 +1,31 @@
+process_names:
+  # Python процессы (bot, celery)
+  - name: "{{.Comm}}"
+    comm:
+      - python3
+      - python
+      - celery
+
+  # Node.js (Grafana)
+  - name: "{{.Comm}}"
+    comm:
+      - node
+
+  # Docker daemon
+  - name: "dockerd"
+    comm:
+      - dockerd
+      - containerd
+
+  # PostgreSQL
+  - name: "postgres"
+    comm:
+      - postgres
+
+  # Redis
+  - name: "redis"
+    comm:
+      - redis-server
+
+  # Все остальные — по имени
+  - name: "{{.Comm}}"

@@ -1,5 +1,5 @@
-# Prometheus config for scraping bot, celery, node, and docker metrics
-# ⚠️  This is a TEMPLATE — ${MOSCOW_SERVER_IP} is substituted via envsubst on startup.
+# Prometheus config for scraping bot, celery, node, docker, process metrics
+# ⚠️  This is a TEMPLATE — ${MOSCOW_SERVER_IP} is substituted via sed in CI/CD.
 global:
   scrape_interval: 15s
   evaluation_interval: 15s
@@ -21,6 +21,22 @@ scrape_configs:
   - job_name: "node"
     static_configs:
       - targets: ["node_exporter:9100"]
+        labels:
+          server_location: "frankfurt"
+
+  # 🔍 Per-process CPU/RAM (Frankfurt)
+  - job_name: "process-exporter"
+    static_configs:
+      - targets: ["process_exporter:9256"]
+        labels:
+          server_location: "frankfurt"
+
+  # 📦 Per-container CPU/RAM — cadvisor Frankfurt
+  # scrape_interval: 60s чтобы НЕ нагружать dockerd!
+  - job_name: "cadvisor"
+    scrape_interval: 60s
+    static_configs:
+      - targets: ["cadvisor:8080"]
         labels:
           server_location: "frankfurt"
 
@@ -47,7 +63,7 @@ scrape_configs:
 
   # 📦 Метрики Docker контейнеров Moscow
   - job_name: "cadvisor-moscow"
-    scrape_interval: 30s
+    scrape_interval: 60s
     static_configs:
       - targets: ["${MOSCOW_SERVER_IP}:8080"]
         labels:

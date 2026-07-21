@@ -9,6 +9,9 @@ clients:
   - url: http://loki:3100/loki/api/v1/push
 
 scrape_configs:
+  # ============================================================
+  # Docker container logs (наши приложения: bot, celery и т.д.)
+  # ============================================================
   - job_name: docker_containers
     docker_sd_configs:
       - host: unix:///var/run/docker.sock
@@ -26,7 +29,6 @@ scrape_configs:
         regex: "(.+)"
         target_label: "server_location"
     pipeline_stages:
-      # Попытка распарсить JSON (наши кастомные логи)
       - json:
           expressions:
             level: level
@@ -40,3 +42,38 @@ scrape_configs:
           logger:
           service_name:
           server_location:
+
+  # ============================================================
+  # 📋 Системные логи сервера (syslog/journal)
+  # Для диагностики что именно грузит CPU
+  # ============================================================
+  - job_name: system_logs
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: syslog
+          server_location: frankfurt
+          __path__: /var/log/syslog
+      - targets:
+          - localhost
+        labels:
+          job: docker_daemon
+          server_location: frankfurt
+          __path__: /var/log/docker.log
+      - targets:
+          - localhost
+        labels:
+          job: kern
+          server_location: frankfurt
+          __path__: /var/log/kern.log
+      - targets:
+          - localhost
+        labels:
+          job: dmesg
+          server_location: frankfurt
+          __path__: /var/log/dmesg
+    pipeline_stages:
+      - multiline:
+          firstline: '^\w{3}\s+\d{1,2}\s+\d{2}:\d{2}:\d{2}'
+          max_wait_time: 3s
