@@ -89,9 +89,9 @@ jobs:
             echo "[4/7] Building and restarting bot..."
             docker compose -f docker-compose.frankfurt.yml up -d --build
 
-            # Start observability stack
+            # Start observability stack (--remove-orphans удаляет cadvisor если он был)
             echo "[5/7] Starting observability stack..."
-            docker compose -f docker-compose.observability.yml up -d
+            docker compose -f docker-compose.observability.yml up -d --remove-orphans
 
             # Reload Grafana dashboards (провижининг + API)
             echo "[6/7] Reloading Grafana dashboards..."
