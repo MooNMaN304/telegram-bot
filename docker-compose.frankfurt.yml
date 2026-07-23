@@ -93,9 +93,10 @@ services:
 networks:
   frankfurt_network:
     driver: bridge
+  # Сеть observability создаётся CI/CD: docker network create observability
+  # external: true чтобы не конфликтовать с labels от observability compose
   observability:
-    driver: bridge
-    name: observability
+    external: true
 
 volumes:
   postgres_data:

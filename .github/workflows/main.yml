@@ -82,7 +82,9 @@ jobs:
               > observability/prometheus/prometheus.yml
 
             # Ensure observability network exists (для node_exporter/cadvisor)
+            # Удаляем старую сеть с неправильными labels если есть
             echo "[3/7] Ensuring observability network exists..."
+            docker network rm observability 2>/dev/null || true
             docker network create observability 2>/dev/null || true
 
             # Build and restart bot
