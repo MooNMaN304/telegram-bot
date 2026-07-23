@@ -53,7 +53,7 @@ jobs:
           host: ${{ secrets.FRANKFURT_HOST }}
           username: ${{ secrets.FRANKFURT_USER }}
           key: ${{ secrets.FRANKFURT_SSH_KEY }}
-          timeout: 20m
+          timeout: 30m
           envs: MOSCOW_HOST
           script: |
             set -e
